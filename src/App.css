@@ -1,38 +1,69 @@
-.App {
-  text-align: center;
+html,
+body,
+#root {
+    height: 100%;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+body {
+    background: #f3f4f6;
+    color: #0b1020;
+    font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        Segoe UI,
+        Roboto,
+        sans-serif;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.app-container {
+    width: min(92vw, 780px);
+    margin: 8vh auto; /* centers horizontally; nice top/bottom space */
+    padding: 28px 24px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow:
+        0 10px 30px rgba(11, 16, 32, 0.08),
+        0 2px 6px rgba(11, 16, 32, 0.04);
+
+    text-align: center;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+/* header row  */
+.qz-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+    /*background-color: grey; /* [to-delete] */
 }
 
-.App-link {
-  color: #61dafb;
+.qz-header svg {
+    display: block; /* removes inline-svg baseline gap */
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.qz-wordmark {
+    display: inline-block; /* better baseline alignment with SVG */
+    transform: translateY(-2px); /* tiny optical nudge */
+}
+
+h3 {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    margin: 10px 0 4px;
+}
+p {
+    margin: 0;
+    color: #4b5563;
+}
+
+/* small screens */
+@media (max-width: 420px) {
+    .app-container {
+        padding: 22px 18px;
+    }
+    .qz-header {
+        gap: 10px;
+    }
 }
