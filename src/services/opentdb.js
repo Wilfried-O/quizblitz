@@ -10,7 +10,7 @@ export async function fetchOpenTdbRaw({
     // UPDATED
     const qs = new URLSearchParams();
     qs.set('amount', String(amount));
-    qs.set('type', 'boolean'); // // keep it to True/False choice for now
+    qs.set('type', 'multiple'); // keep it to multiple choice for now
     if (category) qs.set('category', String(category));
     if (difficulty) qs.set('difficulty', String(difficulty));
 
