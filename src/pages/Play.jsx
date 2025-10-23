@@ -35,7 +35,15 @@ export default function Play() {
 
         fetchOpenTdbRaw({ amount, difficulty, category, signal: ctrl.signal })
             .then(json => {
-                const results = json.results;
+                const results = Array.isArray(json?.results)
+                    ? json.results
+                    : [];
+
+                // early-exit for empty results (e.g., API returned none)
+                if (results.length === 0) {
+                    setStatus('ready'); // we're "done" but have nothing to show
+                    return; // IMPORTANT: stop here
+                }
 
                 // precompute shuffled answers exactly once per fetch
                 const processed = results.map(q => ({

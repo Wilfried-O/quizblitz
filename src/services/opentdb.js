@@ -1,4 +1,3 @@
-// smallest possible helper that returns RAW JSON (no decoding/shuffling)
 const BASE = 'https://opentdb.com/api.php';
 
 export async function fetchOpenTdbRaw({
