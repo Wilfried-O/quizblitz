@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import NotFound from './pages/NotFound';
 import Home from './pages/Home';
 import Play from './pages/Play';
 import PlayGate from './pages/gates/PlayGate';
@@ -17,6 +18,7 @@ export default function App() {
                             </PlayGate>
                         }
                     />
+                    <Route path="*" element={<NotFound />} />
                 </Routes>
             </main>
         </BrowserRouter>
