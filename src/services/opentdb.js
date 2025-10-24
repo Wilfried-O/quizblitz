@@ -6,7 +6,6 @@ export async function fetchOpenTdbRaw({
     difficulty = '',
     signal,
 } = {}) {
-    // UPDATED
     const qs = new URLSearchParams();
     qs.set('amount', String(amount));
     qs.set('type', 'multiple'); // keep it to multiple choice for now

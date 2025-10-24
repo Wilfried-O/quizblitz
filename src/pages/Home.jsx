@@ -18,7 +18,7 @@ export default function Home() {
 
     return (
         <section>
-            <h1>Quiz (Raw JSON test)</h1>
+            <h1>Quiz</h1>
             <form onSubmit={onStart}>
                 <label>
                     {/* wraps text & input: automatic association, no need for id/htmlFor */}

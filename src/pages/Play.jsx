@@ -240,7 +240,14 @@ export default function Play() {
                     </div>
                 </>
             ) : (
-                <p style={{ opacity: 0.8 }}>No questions to display.</p>
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                    <p style={{ opacity: 0.8 }}>
+                        Sorry, no questions to display.
+                    </p>
+                    <Link to="/" style={{ alignSelf: 'center' }}>
+                        Go to Home page
+                    </Link>
+                </div>
             )}
         </section>
     );
