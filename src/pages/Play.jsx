@@ -18,10 +18,13 @@ export default function Play() {
     const [error, setError] = useState(null);
 
     // store processed items (with answers already shuffled)
-    const [items, setItems] = useState([]); // [{ question, answers }]
+    //  include correctIndex so we can score
+    const [items, setItems] = useState([]); // [{ question, answers, correctIndex }]
     const [selected, setSelected] = useState([]); // per-question selected index Array(number|null)
 
     const [current, setCurrent] = useState(0); // index of the current question
+
+    const [score, setScore] = useState(0); // running score
 
     const amount = Number(params.get('amount') ?? 10);
     const difficulty = params.get('difficulty') ?? '';
@@ -35,6 +38,7 @@ export default function Play() {
         setItems([]);
         setSelected([]);
         setCurrent(0); // reset to first question when fetching
+        setScore(0); // reset score on new fetch
 
         fetchOpenTdbRaw({ amount, difficulty, category, signal: ctrl.signal })
             .then(json => {
@@ -48,14 +52,21 @@ export default function Play() {
                     return; // IMPORTANT: stop here
                 }
 
-                // precompute shuffled answers exactly once per fetch
-                const processed = results.map(q => ({
-                    question: q.question,
-                    answers: shuffle([
+                // compute shuffled answers + correctIndex exactly once
+                const processed = results.map(q => {
+                    const answers = shuffle([
                         q.correct_answer,
                         ...q.incorrect_answers,
-                    ]),
-                }));
+                    ]);
+                    const correctIndex = answers.findIndex(
+                        a => a === q.correct_answer
+                    );
+                    return {
+                        question: q.question,
+                        answers,
+                        correctIndex,
+                    };
+                });
 
                 setItems(processed);
                 setSelected(
@@ -81,13 +92,22 @@ export default function Play() {
     };
 
     // derived flags for Next button
-    const hasItems = items.length > 0; // NEW
+    const hasItems = items.length > 0;
     const isLast = hasItems && current === items.length - 1;
     const canProceed = hasItems && selected[current] !== null;
 
     const handleNext = () => {
         if (!canProceed) return;
-        if (isLast) return; // for now, do nothing at end (later we'll finish)
+
+        // score this question before moving on
+        const chosen = selected[current];
+        const correct = items[current].correctIndex;
+        if (chosen === correct) {
+            setScore(s => s + 1);
+        }
+
+        if (isLast) return; // we’ll handle final scoring/finish later
+
         setCurrent(c => c + 1); // go to next question
     };
 
@@ -98,6 +118,9 @@ export default function Play() {
     return (
         <section>
             <h2>Questions (select an answer)</h2>
+
+            {/* show running score */}
+            <div style={{ opacity: 0.9, marginBottom: 8 }}>Score: {score}</div>
 
             {items.length > 0 ? (
                 <>
@@ -168,7 +191,7 @@ export default function Play() {
                                     ? 'This is the last question (finish comes later)'
                                     : !canProceed
                                       ? 'Select an answer first'
-                                      : 'Go to next question'
+                                      : 'Score this question and go next'
                             }
                         >
                             Next
