@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { fetchOpenTdbRaw } from '../services/opentdb';
 
 // Fisher–Yates algo for shuffle helper
@@ -17,14 +17,14 @@ export default function Play() {
     const [status, setStatus] = useState('idle');
     const [error, setError] = useState(null);
 
-    // store processed items (with answers already shuffled)
-    //  include correctIndex so we can score
-    const [items, setItems] = useState([]); // [{ question, answers, correctIndex }]
-    const [selected, setSelected] = useState([]); // per-question selected index Array(number|null)
-
+    // [{ question, answers, correctIndex }]
+    const [items, setItems] = useState([]);
+    const [selected, setSelected] = useState([]); // number|null per question
     const [current, setCurrent] = useState(0); // index of the current question
+    const [score, setScore] = useState(0);
+    const [finished, setFinished] = useState(false);
 
-    const [score, setScore] = useState(0); // running score
+    const [reloadSeed, setReloadSeed] = useState(0); // to refetch with same settings
 
     const amount = Number(params.get('amount') ?? 10);
     const difficulty = params.get('difficulty') ?? '';
@@ -32,13 +32,13 @@ export default function Play() {
 
     useEffect(() => {
         const ctrl = new AbortController();
-        // resets on param change
         setStatus('loading');
         setError(null);
         setItems([]);
         setSelected([]);
-        setCurrent(0); // reset to first question when fetching
-        setScore(0); // reset score on new fetch
+        setCurrent(0);
+        setScore(0);
+        setFinished(false); // ensure we go back to quiz view
 
         fetchOpenTdbRaw({ amount, difficulty, category, signal: ctrl.signal })
             .then(json => {
@@ -61,17 +61,14 @@ export default function Play() {
                     const correctIndex = answers.findIndex(
                         a => a === q.correct_answer
                     );
-                    return {
-                        question: q.question,
-                        answers,
-                        correctIndex,
-                    };
+                    return { question: q.question, answers, correctIndex };
                 });
-
                 setItems(processed);
+
+                // init selection slots
                 setSelected(
                     Array.from({ length: processed.length }, () => null)
-                ); // init selection slots
+                );
                 setStatus('ready');
             })
             .catch(err => {
@@ -81,7 +78,8 @@ export default function Play() {
             });
 
         return () => ctrl.abort();
-    }, [amount, difficulty, category]);
+        // depend on reloadSeed so "Play again" re-runs this effect with same settings
+    }, [amount, difficulty, category, reloadSeed]);
 
     const onSelect = (qIndex, aIndex) => {
         setSelected(prev => {
@@ -99,27 +97,59 @@ export default function Play() {
     const handleNext = () => {
         if (!canProceed) return;
 
-        // score this question before moving on
+        // score current question before moving on
         const chosen = selected[current];
         const correct = items[current].correctIndex;
-        if (chosen === correct) {
-            setScore(s => s + 1);
-        }
+        if (chosen === correct) setScore(s => s + 1);
 
-        if (isLast) return; // we’ll handle final scoring/finish later
+        if (isLast) return; // last question handled by Finish
+        setCurrent(c => c + 1);
+    };
 
-        setCurrent(c => c + 1); // go to next question
+    const handleFinish = () => {
+        if (!canProceed) return; // require a selection on the last question
+
+        // score the last question
+        const chosen = selected[current];
+        const correct = items[current].correctIndex;
+        if (chosen === correct) setScore(s => s + 1);
+
+        setFinished(true); // show summary
+    };
+
+    const handlePlayAgain = () => {
+        // re-run the fetch with the same query params/settings
+        setReloadSeed(s => s + 1);
     };
 
     if (status === 'loading') return <p>Loading…</p>;
     if (status === 'error')
         return <p style={{ color: 'salmon' }}>Error: {error}</p>;
 
+    // Summary view with buttons (Play again + Home)
+    if (finished) {
+        return (
+            <section>
+                <h2>Summary</h2>
+                <p>
+                    Score: <strong>{score}</strong> /{' '}
+                    <strong>{items.length}</strong>
+                </p>
+
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                    <button onClick={handlePlayAgain}>Play again</button>
+                    <Link to="/" style={{ alignSelf: 'center' }}>
+                        Home
+                    </Link>
+                </div>
+            </section>
+        );
+    }
+
     return (
         <section>
             <h2>Questions (select an answer)</h2>
 
-            {/* show running score */}
             <div style={{ opacity: 0.9, marginBottom: 8 }}>Score: {score}</div>
 
             {items.length > 0 ? (
@@ -181,21 +211,32 @@ export default function Play() {
                         </ul>
                     </div>
 
-                    {/* Next button (disabled until selection) */}
                     <div>
-                        <button
-                            onClick={handleNext}
-                            disabled={!canProceed || isLast}
-                            title={
-                                isLast
-                                    ? 'This is the last question (finish comes later)'
-                                    : !canProceed
-                                      ? 'Select an answer first'
-                                      : 'Score this question and go next'
-                            }
-                        >
-                            Next
-                        </button>
+                        {!isLast ? (
+                            <button
+                                onClick={handleNext}
+                                disabled={!canProceed}
+                                title={
+                                    !canProceed
+                                        ? 'Select an answer first'
+                                        : 'Score and go next'
+                                }
+                            >
+                                Next
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleFinish}
+                                disabled={!canProceed}
+                                title={
+                                    !canProceed
+                                        ? 'Select an answer first'
+                                        : 'Finish and show summary'
+                                }
+                            >
+                                Finish
+                            </button>
+                        )}
                     </div>
                 </>
             ) : (
