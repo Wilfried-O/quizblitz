@@ -20,11 +20,12 @@ export default function Play() {
     // [{ question, answers, correctIndex }]
     const [items, setItems] = useState([]);
     const [selected, setSelected] = useState([]); // number|null per question
-    const [current, setCurrent] = useState(0); // index of the current question
+    const [current, setCurrent] = useState(0);
     const [score, setScore] = useState(0);
+
     const [finished, setFinished] = useState(false);
 
-    const [reloadSeed, setReloadSeed] = useState(0); // to refetch with same settings
+    const [reloadSeed, setReloadSeed] = useState(0); // (used by "Play again")
 
     const amount = Number(params.get('amount') ?? 10);
     const difficulty = params.get('difficulty') ?? '';
@@ -38,7 +39,7 @@ export default function Play() {
         setSelected([]);
         setCurrent(0);
         setScore(0);
-        setFinished(false); // ensure we go back to quiz view
+        setFinished(false);
 
         fetchOpenTdbRaw({ amount, difficulty, category, signal: ctrl.signal })
             .then(json => {
@@ -46,13 +47,12 @@ export default function Play() {
                     ? json.results
                     : [];
 
-                // early-exit for empty results (e.g., API returned none)
+                // zero questions (e.g., bad params or API returned none)
                 if (results.length === 0) {
-                    setStatus('ready'); // we're "done" but have nothing to show
+                    setStatus('ready');
                     return; // IMPORTANT: stop here
                 }
 
-                // compute shuffled answers + correctIndex exactly once
                 const processed = results.map(q => {
                     const answers = shuffle([
                         q.correct_answer,
@@ -64,8 +64,6 @@ export default function Play() {
                     return { question: q.question, answers, correctIndex };
                 });
                 setItems(processed);
-
-                // init selection slots
                 setSelected(
                     Array.from({ length: processed.length }, () => null)
                 );
@@ -78,7 +76,6 @@ export default function Play() {
             });
 
         return () => ctrl.abort();
-        // depend on reloadSeed so "Play again" re-runs this effect with same settings
     }, [amount, difficulty, category, reloadSeed]);
 
     const onSelect = (qIndex, aIndex) => {
@@ -89,7 +86,6 @@ export default function Play() {
         });
     };
 
-    // derived flags for Next button
     const hasItems = items.length > 0;
     const isLast = hasItems && current === items.length - 1;
     const canProceed = hasItems && selected[current] !== null;
@@ -118,15 +114,38 @@ export default function Play() {
     };
 
     const handlePlayAgain = () => {
-        // re-run the fetch with the same query params/settings
         setReloadSeed(s => s + 1);
     };
 
     if (status === 'loading') return <p>Loading…</p>;
-    if (status === 'error')
-        return <p style={{ color: 'salmon' }}>Error: {error}</p>;
 
-    // Summary view with buttons (Play again + Home)
+    if (status === 'error') {
+        return (
+            <section>
+                <p style={{ color: 'salmon' }}>Error: {error}</p>
+                <div style={{ marginTop: 12 }}>
+                    <Link to="/">Home</Link>
+                </div>
+            </section>
+        );
+    }
+
+    // ready but no questions -> show "Go Home"
+    if (status === 'ready' && items.length === 0 && !finished) {
+        return (
+            <section>
+                <h2>No questions available</h2>
+                <p style={{ opacity: 0.85 }}>
+                    Try different settings (amount, difficulty, or category).
+                </p>
+                <div style={{ marginTop: 12 }}>
+                    <Link to="/">Home</Link>
+                </div>
+            </section>
+        );
+    }
+
+    // Summary
     if (finished) {
         return (
             <section>
@@ -146,6 +165,7 @@ export default function Play() {
         );
     }
 
+    // Main quiz view
     return (
         <section>
             <h2>Questions (select an answer)</h2>
@@ -154,12 +174,10 @@ export default function Play() {
 
             {items.length > 0 ? (
                 <>
-                    {/* simple progress status*/}
                     <div style={{ opacity: 0.8, marginBottom: 8 }}>
                         Question {current + 1} of {items.length}
                     </div>
 
-                    {/* render only the current question */}
                     <div style={{ marginBottom: 16 }}>
                         {/* NOTE: still raw HTML entities for now */}
                         <div style={{ fontWeight: 600, marginBottom: 6 }}>
@@ -197,7 +215,7 @@ export default function Play() {
                                         >
                                             <input
                                                 type="radio"
-                                                name={`q-${current}`} // name by current index
+                                                name={`q-${current}`}
                                                 checked={isSelected}
                                                 onChange={() =>
                                                     onSelect(current, aIndex)
@@ -240,14 +258,8 @@ export default function Play() {
                     </div>
                 </>
             ) : (
-                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                    <p style={{ opacity: 0.8 }}>
-                        Sorry, no questions to display.
-                    </p>
-                    <Link to="/" style={{ alignSelf: 'center' }}>
-                        Go to Home page
-                    </Link>
-                </div>
+                // This branch is unlikely now, but kept as a fallback
+                <p style={{ opacity: 0.8 }}>No questions to display.</p>
             )}
         </section>
     );
