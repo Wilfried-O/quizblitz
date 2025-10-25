@@ -17,9 +17,11 @@ export default function Play() {
     const [status, setStatus] = useState('idle');
     const [error, setError] = useState(null);
 
-    // [{ question, answers, correctIndex }]
+    // items: [{ question, answers: [{ id, label }], correctId }]
     const [items, setItems] = useState([]);
-    const [selected, setSelected] = useState([]); // number|null per question
+
+    const [selectedId, setSelectedId] = useState([]); // string|null per question
+
     const [current, setCurrent] = useState(0);
     const [score, setScore] = useState(0);
 
@@ -36,7 +38,7 @@ export default function Play() {
         setStatus('loading');
         setError(null);
         setItems([]);
-        setSelected([]);
+        setSelectedId([]);
         setCurrent(0);
         setScore(0);
         setFinished(false);
@@ -53,18 +55,33 @@ export default function Play() {
                     return; // IMPORTANT: stop here
                 }
 
-                const processed = results.map(q => {
-                    const answers = shuffle([
-                        q.correct_answer,
-                        ...q.incorrect_answers,
-                    ]);
-                    const correctIndex = answers.findIndex(
-                        a => a === q.correct_answer
-                    );
-                    return { question: q.question, answers, correctIndex };
+                // build options with stable ids, shuffle for display
+                const processed = results.map((q, qIdx) => {
+                    const options = [
+                        {
+                            id: `q${qIdx}-c`,
+                            label: q.correct_answer,
+                            isCorrect: true,
+                        },
+                        ...q.incorrect_answers.map((ans, i) => ({
+                            id: `q${qIdx}-i${i}`,
+                            label: ans,
+                            isCorrect: false,
+                        })),
+                    ];
+                    const shuffled = shuffle(options);
+                    const correctId = shuffled.find(o => o.isCorrect)?.id;
+                    return {
+                        question: q.question,
+                        answers: shuffled.map(({ id, label }) => ({
+                            id,
+                            label,
+                        })),
+                        correctId,
+                    };
                 });
                 setItems(processed);
-                setSelected(
+                setSelectedId(
                     Array.from({ length: processed.length }, () => null)
                 );
                 setStatus('ready');
@@ -78,25 +95,25 @@ export default function Play() {
         return () => ctrl.abort();
     }, [amount, difficulty, category, reloadSeed]);
 
-    const onSelect = (qIndex, aIndex) => {
-        setSelected(prev => {
+    const onSelect = (qIndex, answerId) => {
+        setSelectedId(prev => {
             const next = prev.slice();
-            next[qIndex] = aIndex;
+            next[qIndex] = answerId;
             return next;
         });
     };
 
     const hasItems = items.length > 0;
     const isLast = hasItems && current === items.length - 1;
-    const canProceed = hasItems && selected[current] !== null;
+    const canProceed = hasItems && selectedId[current] !== null;
 
     const handleNext = () => {
         if (!canProceed) return;
 
-        // score current question before moving on
-        const chosen = selected[current];
-        const correct = items[current].correctIndex;
-        if (chosen === correct) setScore(s => s + 1);
+        // score current question by id
+        const chosenId = selectedId[current];
+        const correctId = items[current].correctId;
+        if (chosenId && chosenId === correctId) setScore(s => s + 1);
 
         if (isLast) return; // last question handled by Finish
         setCurrent(c => c + 1);
@@ -105,10 +122,10 @@ export default function Play() {
     const handleFinish = () => {
         if (!canProceed) return; // require a selection on the last question
 
-        // score the last question
-        const chosen = selected[current];
-        const correct = items[current].correctIndex;
-        if (chosen === correct) setScore(s => s + 1);
+        // score the last question (by id)
+        const chosenId = selectedId[current];
+        const correctId = items[current].correctId;
+        if (chosenId && chosenId === correctId) setScore(s => s + 1);
 
         setFinished(true); // show summary
     };
@@ -188,11 +205,11 @@ export default function Play() {
                             role="radiogroup"
                             style={{ listStyle: 'none', paddingLeft: 0 }}
                         >
-                            {items[current].answers.map((a, aIndex) => {
-                                const isSelected = selected[current] === aIndex;
+                            {items[current].answers.map(a => {
+                                const isSelected = selectedId[current] === a.id; // NEW: highlight via id
                                 return (
                                     <li
-                                        key={aIndex}
+                                        key={a.id} // stable key by id
                                         style={{
                                             margin: '6px 0',
                                             padding: '6px 8px',
@@ -218,10 +235,10 @@ export default function Play() {
                                                 name={`q-${current}`}
                                                 checked={isSelected}
                                                 onChange={() =>
-                                                    onSelect(current, aIndex)
-                                                }
+                                                    onSelect(current, a.id)
+                                                } // UPDATED: pass id
                                             />
-                                            <span>{a}</span>
+                                            <span>{a.label}</span>
                                         </label>
                                     </li>
                                 );
