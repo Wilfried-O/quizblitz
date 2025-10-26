@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { fetchOpenTdbRaw } from '../services/opentdb';
+import { useQuizCtx } from '../context/QuizContext';
 
 // Fisher–Yates algo for shuffle helper
 function shuffle(arr) {
@@ -13,25 +14,23 @@ function shuffle(arr) {
 }
 
 export default function Play() {
-    const [params] = useSearchParams();
-    const [status, setStatus] = useState('idle');
+    const { settings } = useQuizCtx();
+    const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'ready' | 'error'
     const [error, setError] = useState(null);
 
-    // items: [{ question, answers: [{ id, label }], correctId }]
+    // [{ question, answers: [{ id, label }], correctId }]
     const [items, setItems] = useState([]);
-
     const [selectedId, setSelectedId] = useState([]); // string|null per question
 
-    const [current, setCurrent] = useState(0);
+    const [current, setCurrent] = useState(0); // track current question [0...items.length-1]
     const [score, setScore] = useState(0);
-
     const [finished, setFinished] = useState(false);
 
-    const [reloadSeed, setReloadSeed] = useState(0); // (used by "Play again")
+    const [reloadSeed, setReloadSeed] = useState(0); // used by "Play again"
 
-    const amount = Number(params.get('amount') ?? 10);
-    const difficulty = params.get('difficulty') ?? '';
-    const category = params.get('category') ?? '';
+    const amount = Number(settings.amount ?? 10);
+    const difficulty = settings.difficulty ?? '';
+    const category = settings.category ?? '';
 
     useEffect(() => {
         const ctrl = new AbortController();
@@ -51,11 +50,11 @@ export default function Play() {
 
                 // zero questions (e.g., bad params or API returned none)
                 if (results.length === 0) {
-                    setStatus('ready');
-                    return; // IMPORTANT: stop here
+                    setStatus('ready'); // we're "done" but have nothing to show
+                    return;
                 }
 
-                // build options with stable ids, shuffle for display
+                // build answers with stable ids, shuffle for display
                 const processed = results.map((q, qIdx) => {
                     const options = [
                         {
@@ -72,7 +71,7 @@ export default function Play() {
                     const shuffled = shuffle(options);
                     const correctId = shuffled.find(o => o.isCorrect)?.id;
                     return {
-                        question: q.question,
+                        question: q.question, // NOTE: still raw HTML entities for now
                         answers: shuffled.map(({ id, label }) => ({
                             id,
                             label,
@@ -81,9 +80,12 @@ export default function Play() {
                     };
                 });
                 setItems(processed);
+
+                // init selection slots
                 setSelectedId(
                     Array.from({ length: processed.length }, () => null)
                 );
+
                 setStatus('ready');
             })
             .catch(err => {
@@ -99,40 +101,39 @@ export default function Play() {
         setSelectedId(prev => {
             const next = prev.slice();
             next[qIndex] = answerId;
+
             return next;
         });
     };
 
+    // derived flags for Next button
     const hasItems = items.length > 0;
     const isLast = hasItems && current === items.length - 1;
     const canProceed = hasItems && selectedId[current] !== null;
 
     const handleNext = () => {
-        if (!canProceed) return;
+        if (!canProceed) return; // require to select an answer
 
-        // score current question by id
         const chosenId = selectedId[current];
         const correctId = items[current].correctId;
         if (chosenId && chosenId === correctId) setScore(s => s + 1);
 
-        if (isLast) return; // last question handled by Finish
-        setCurrent(c => c + 1);
+        if (!isLast) setCurrent(c => c + 1); // do not handle the last question
     };
 
     const handleFinish = () => {
-        if (!canProceed) return; // require a selection on the last question
+        if (!canProceed) return;
 
-        // score the last question (by id)
         const chosenId = selectedId[current];
         const correctId = items[current].correctId;
         if (chosenId && chosenId === correctId) setScore(s => s + 1);
 
-        setFinished(true); // show summary
+        setFinished(true);
     };
 
-    const handlePlayAgain = () => {
+    const handlePlayAgain = () =>
+        // re-run the fetch with the same query params/settings
         setReloadSeed(s => s + 1);
-    };
 
     if (status === 'loading') return <p>Loading…</p>;
 
@@ -171,7 +172,6 @@ export default function Play() {
                     Score: <strong>{score}</strong> /{' '}
                     <strong>{items.length}</strong>
                 </p>
-
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                     <button onClick={handlePlayAgain}>Play again</button>
                     <Link to="/" style={{ alignSelf: 'center' }}>
@@ -206,10 +206,10 @@ export default function Play() {
                             style={{ listStyle: 'none', paddingLeft: 0 }}
                         >
                             {items[current].answers.map(a => {
-                                const isSelected = selectedId[current] === a.id; // NEW: highlight via id
+                                const isSelected = selectedId[current] === a.id;
                                 return (
                                     <li
-                                        key={a.id} // stable key by id
+                                        key={a.id}
                                         style={{
                                             margin: '6px 0',
                                             padding: '6px 8px',
@@ -236,7 +236,7 @@ export default function Play() {
                                                 checked={isSelected}
                                                 onChange={() =>
                                                     onSelect(current, a.id)
-                                                } // UPDATED: pass id
+                                                }
                                             />
                                             <span>{a.label}</span>
                                         </label>

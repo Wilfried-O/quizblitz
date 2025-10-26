@@ -1,11 +1,10 @@
-// Computes canAccess (currently from URL), then delegates to ProtectedRoute.
-import { useSearchParams } from 'react-router-dom';
-import ProtectedRoute from '../../components/routing/ProtectedRoute'; // generic guard
+// Computes canAccess from Context, then delegates to ProtectedRoute.
+import ProtectedRoute from '../../components/routing/ProtectedRoute';
+import { useQuizCtx } from '../../context/QuizContext';
 
 export default function PlayGate({ children }) {
-    const [params] = useSearchParams();
-    const amount = Number(params.get('amount') ?? 0);
-    const canAccess = Number.isFinite(amount) && amount >= 1; // current rule
+    const { settings } = useQuizCtx();
+    const canAccess = Number.isFinite(settings.amount) && settings.amount >= 1;
 
     return (
         <ProtectedRoute canAccess={canAccess} redirectTo="/">
