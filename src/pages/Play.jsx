@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchOpenTdbRaw } from '../services/opentdb';
 import { useQuizCtx } from '../context/QuizContext';
 
-// Fisher–Yates algo for shuffle helper
+// shuffle helper using Fisher–Yates algo
 function shuffle(arr) {
     const a = arr.slice();
     for (let i = a.length - 1; i > 0; i--) {
@@ -13,34 +13,53 @@ function shuffle(arr) {
     return a;
 }
 
+// formatter for timer
+function formatMs(ms) {
+    const sec = Math.max(0, Math.floor(ms / 1000));
+    //const m = String(Math.floor(sec / 60)).padStart(2, '0');
+    const s = String(sec % 60).padStart(2, '0');
+    return `${s}s`;
+}
+
 export default function Play() {
     const { settings } = useQuizCtx();
     const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'ready' | 'error'
     const [error, setError] = useState(null);
 
-    // [{ question, answers: [{ id, label }], correctId }]
+    // items: [{ question, answers: [{ id, label }], correctId }]
     const [items, setItems] = useState([]);
     const [selectedId, setSelectedId] = useState([]); // string|null per question
 
     const [current, setCurrent] = useState(0); // track current question [0...items.length-1]
     const [score, setScore] = useState(0);
     const [finished, setFinished] = useState(false);
-
     const [reloadSeed, setReloadSeed] = useState(0); // used by "Play again"
 
     const amount = Number(settings.amount ?? 10);
     const difficulty = settings.difficulty ?? '';
     const category = settings.category ?? '';
 
+    // --- TIMER (per question) ---
+    const PER_Q_MS = 20_000;
+    const [remainingMs, setRemainingMs] = useState(PER_Q_MS);
+    const endAtRef = useRef(null); // for deadline: now +
+
+    // Fetch & initialize quiz
     useEffect(() => {
         const ctrl = new AbortController();
         setStatus('loading');
         setError(null);
+
+        // reset quiz state
         setItems([]);
         setSelectedId([]);
         setCurrent(0);
         setScore(0);
         setFinished(false);
+
+        // reset timer UI and clear deadline
+        setRemainingMs(PER_Q_MS);
+        endAtRef.current = null;
 
         fetchOpenTdbRaw({ amount, difficulty, category, signal: ctrl.signal })
             .then(json => {
@@ -49,9 +68,9 @@ export default function Play() {
                     : [];
 
                 // zero questions (e.g., bad params or API returned none)
-                if (results.length === 0) {
+                if (!results.length) {
                     setStatus('ready'); // we're "done" but have nothing to show
-                    return;
+                    return; // no questions — no timer
                 }
 
                 // build answers with stable ids, shuffle for display
@@ -71,7 +90,7 @@ export default function Play() {
                     const shuffled = shuffle(options);
                     const correctId = shuffled.find(o => o.isCorrect)?.id;
                     return {
-                        question: q.question, // NOTE: still raw HTML entities for now
+                        question: q.question, // NOTE: raw entities for now
                         answers: shuffled.map(({ id, label }) => ({
                             id,
                             label,
@@ -97,43 +116,70 @@ export default function Play() {
         return () => ctrl.abort();
     }, [amount, difficulty, category, reloadSeed]);
 
+    // Start (or restart) the timer whenever the active question changes
+    useEffect(() => {
+        if (!items.length || finished) return;
+        const now = Date.now();
+        endAtRef.current = now + PER_Q_MS;
+        setRemainingMs(PER_Q_MS);
+    }, [current, items.length, finished]);
+
+    // The ticking loop (drift-free), reading the deadline from the ref
+    useEffect(() => {
+        if (!endAtRef.current || finished || !items.length) return;
+
+        let timeoutId;
+
+        const tick = () => {
+            const now = Date.now();
+            const deadline = endAtRef.current;
+            if (!deadline) return;
+
+            const remain = Math.max(0, deadline - now);
+            setRemainingMs(remain);
+
+            if (remain === 0) {
+                autoAdvanceOnTimeout();
+                return; // next question effect will restart the timer
+            }
+
+            const nextDelay = 1000 - (now % 1000);
+            timeoutId = setTimeout(tick, nextDelay);
+        };
+
+        timeoutId = setTimeout(tick, 0);
+        return () => timeoutId && clearTimeout(timeoutId);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [current, finished, items.length, selectedId]);
+
+    // When a question times out: score if selected, then next/finish
+    const autoAdvanceOnTimeout = () => {
+        if (finished || !items.length) return;
+
+        const chosenId = selectedId[current];
+        const correctId = items[current]?.correctId;
+
+        if (chosenId && chosenId === correctId) {
+            setScore(s => s + 1);
+        }
+
+        const isLast = current === items.length - 1;
+        if (isLast) {
+            setFinished(true);
+            endAtRef.current = null;
+        } else {
+            setCurrent(c => c + 1); // question-change effect will set new deadline
+        }
+    };
+
     const onSelect = (qIndex, answerId) => {
+        if (finished) return;
         setSelectedId(prev => {
             const next = prev.slice();
             next[qIndex] = answerId;
-
             return next;
         });
     };
-
-    // derived flags for Next button
-    const hasItems = items.length > 0;
-    const isLast = hasItems && current === items.length - 1;
-    const canProceed = hasItems && selectedId[current] !== null;
-
-    const handleNext = () => {
-        if (!canProceed) return; // require to select an answer
-
-        const chosenId = selectedId[current];
-        const correctId = items[current].correctId;
-        if (chosenId && chosenId === correctId) setScore(s => s + 1);
-
-        if (!isLast) setCurrent(c => c + 1); // do not handle the last question
-    };
-
-    const handleFinish = () => {
-        if (!canProceed) return;
-
-        const chosenId = selectedId[current];
-        const correctId = items[current].correctId;
-        if (chosenId && chosenId === correctId) setScore(s => s + 1);
-
-        setFinished(true);
-    };
-
-    const handlePlayAgain = () =>
-        // re-run the fetch with the same query params/settings
-        setReloadSeed(s => s + 1);
 
     if (status === 'loading') return <p>Loading…</p>;
 
@@ -152,9 +198,10 @@ export default function Play() {
     if (status === 'ready' && items.length === 0 && !finished) {
         return (
             <section>
-                <h2>No questions available</h2>
+                <h2>Sorry, no questions available</h2>
                 <p style={{ opacity: 0.85 }}>
-                    Try different settings (amount, difficulty, or category).
+                    Please, try different settings (amount, difficulty, or
+                    category).
                 </p>
                 <div style={{ marginTop: 12 }}>
                     <Link to="/">Home</Link>
@@ -163,7 +210,7 @@ export default function Play() {
         );
     }
 
-    // Summary
+    // Summary view
     if (finished) {
         return (
             <section>
@@ -173,7 +220,9 @@ export default function Play() {
                     <strong>{items.length}</strong>
                 </p>
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                    <button onClick={handlePlayAgain}>Play again</button>
+                    <button onClick={() => setReloadSeed(s => s + 1)}>
+                        Play again
+                    </button>
                     <Link to="/" style={{ alignSelf: 'center' }}>
                         Home
                     </Link>
@@ -185,20 +234,37 @@ export default function Play() {
     // Main quiz view
     return (
         <section>
-            <h2>Questions (select an answer)</h2>
+            <h2>
+                Question {current + 1} of {items.length}
+            </h2>
 
-            <div style={{ opacity: 0.9, marginBottom: 8 }}>Score: {score}</div>
+            {/* Timer UI (per-question) */}
+            <div
+                style={{
+                    display: 'flex',
+                    gap: 16,
+                    alignItems: 'center',
+                    padding: '18px 0 28px',
+                }}
+            >
+                <div style={{ opacity: 0.8 }}>Score: {score}</div>
+                <div>
+                    Time left:{' '}
+                    <strong style={{ color: 'orange', fontSize: '1.2em' }}>
+                        {formatMs(remainingMs)}
+                    </strong>
+                </div>
+            </div>
 
             {items.length > 0 ? (
                 <>
-                    <div style={{ opacity: 0.8, marginBottom: 8 }}>
-                        Question {current + 1} of {items.length}
-                    </div>
-
                     <div style={{ marginBottom: 16 }}>
                         {/* NOTE: still raw HTML entities for now */}
                         <div style={{ fontWeight: 600, marginBottom: 6 }}>
                             {items[current].question}
+                        </div>
+                        <div style={{ opacity: 0.7, marginBottom: 8 }}>
+                            (select an answer)
                         </div>
 
                         <ul
@@ -245,38 +311,10 @@ export default function Play() {
                             })}
                         </ul>
                     </div>
-
-                    <div>
-                        {!isLast ? (
-                            <button
-                                onClick={handleNext}
-                                disabled={!canProceed}
-                                title={
-                                    !canProceed
-                                        ? 'Select an answer first'
-                                        : 'Score and go next'
-                                }
-                            >
-                                Next
-                            </button>
-                        ) : (
-                            <button
-                                onClick={handleFinish}
-                                disabled={!canProceed}
-                                title={
-                                    !canProceed
-                                        ? 'Select an answer first'
-                                        : 'Finish and show summary'
-                                }
-                            >
-                                Finish
-                            </button>
-                        )}
-                    </div>
                 </>
             ) : (
                 // This branch is unlikely now, but kept as a fallback
-                <p style={{ opacity: 0.8 }}>No questions to display.</p>
+                <p style={{ opacity: 0.8 }}>Sorry, no questions to display.</p>
             )}
         </section>
     );
