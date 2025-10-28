@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { fetchOpenTdbRaw } from '../services/opentdb';
 import { useQuizCtx } from '../context/QuizContext';
 
@@ -16,13 +16,13 @@ function shuffle(arr) {
 // formatter for timer
 function formatMs(ms) {
     const sec = Math.max(0, Math.floor(ms / 1000));
-    //const m = String(Math.floor(sec / 60)).padStart(2, '0');
     const s = String(sec % 60).padStart(2, '0');
     return `${s}s`;
 }
 
 export default function Play() {
-    const { settings } = useQuizCtx();
+    const navigate = useNavigate();
+    const { settings, setResult, setIsPlaying } = useQuizCtx();
     const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'ready' | 'error'
     const [error, setError] = useState(null);
 
@@ -33,7 +33,6 @@ export default function Play() {
     const [current, setCurrent] = useState(0); // track current question [0...items.length-1]
     const [score, setScore] = useState(0);
     const [finished, setFinished] = useState(false);
-    const [reloadSeed, setReloadSeed] = useState(0); // used by "Play again"
 
     const amount = Number(settings.amount ?? 10);
     const difficulty = settings.difficulty ?? '';
@@ -42,13 +41,16 @@ export default function Play() {
     // --- TIMER (per question) ---
     const PER_Q_MS = 20_000;
     const [remainingMs, setRemainingMs] = useState(PER_Q_MS);
-    const endAtRef = useRef(null); // for deadline: now +
+    const endAtRef = useRef(null); // for deadline
 
     // Fetch & initialize quiz
     useEffect(() => {
         const ctrl = new AbortController();
         setStatus('loading');
         setError(null);
+
+        setResult(null); // starting fresh run → remove previous result
+        setIsPlaying(true); //  mark active run
 
         // reset quiz state
         setItems([]);
@@ -70,7 +72,8 @@ export default function Play() {
                 // zero questions (e.g., bad params or API returned none)
                 if (!results.length) {
                     setStatus('ready'); // we're "done" but have nothing to show
-                    return; // no questions — no timer
+                    setIsPlaying(false);
+                    return;
                 }
 
                 // build answers with stable ids, shuffle for display
@@ -90,7 +93,7 @@ export default function Play() {
                     const shuffled = shuffle(options);
                     const correctId = shuffled.find(o => o.isCorrect)?.id;
                     return {
-                        question: q.question, // NOTE: raw entities for now
+                        question: q.question, // NOTE: raw HTML entities, for now
                         answers: shuffled.map(({ id, label }) => ({
                             id,
                             label,
@@ -111,10 +114,15 @@ export default function Play() {
                 if (err?.name === 'AbortError') return;
                 setError(err?.message || 'Failed to load');
                 setStatus('error');
+                setIsPlaying(false); // error aborts the run
             });
 
-        return () => ctrl.abort();
-    }, [amount, difficulty, category, reloadSeed]);
+        return () => {
+            ctrl.abort();
+            setIsPlaying(false); // leaving /play ends the active run
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [amount, difficulty, category]);
 
     // Start (or restart) the timer whenever the active question changes
     useEffect(() => {
@@ -152,23 +160,29 @@ export default function Play() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [current, finished, items.length, selectedId]);
 
-    // When a question times out: score if selected, then next/finish
+    // When a question times out: score if selected,
     const autoAdvanceOnTimeout = () => {
         if (finished || !items.length) return;
 
         const chosenId = selectedId[current];
         const correctId = items[current]?.correctId;
 
+        let nextScore = score; // capture the value we'll persist
         if (chosenId && chosenId === correctId) {
-            setScore(s => s + 1);
+            nextScore = score + 1;
+            setScore(s => s + 1); // used for updating UI
         }
 
         const isLast = current === items.length - 1;
         if (isLast) {
             setFinished(true);
             endAtRef.current = null;
+
+            setResult({ score: nextScore, total: items.length });
+            setIsPlaying(false);
+            navigate('/results');
         } else {
-            setCurrent(c => c + 1); // question-change effect will set new deadline
+            setCurrent(c => c + 1);
         }
     };
 
@@ -210,27 +224,6 @@ export default function Play() {
         );
     }
 
-    // Summary view
-    if (finished) {
-        return (
-            <section>
-                <h2>Summary</h2>
-                <p>
-                    Score: <strong>{score}</strong> /{' '}
-                    <strong>{items.length}</strong>
-                </p>
-                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                    <button onClick={() => setReloadSeed(s => s + 1)}>
-                        Play again
-                    </button>
-                    <Link to="/" style={{ alignSelf: 'center' }}>
-                        Home
-                    </Link>
-                </div>
-            </section>
-        );
-    }
-
     // Main quiz view
     return (
         <section>
@@ -238,7 +231,7 @@ export default function Play() {
                 Question {current + 1} of {items.length}
             </h2>
 
-            {/* Timer UI (per-question) */}
+            {/* Timer */}
             <div
                 style={{
                     display: 'flex',
@@ -256,6 +249,7 @@ export default function Play() {
                 </div>
             </div>
 
+            {/* Current Question */}
             {items.length > 0 ? (
                 <>
                     <div style={{ marginBottom: 16 }}>

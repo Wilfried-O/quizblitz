@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useContext, useMemo, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
 const QuizContext = createContext(null);
@@ -11,9 +11,22 @@ export function QuizProvider({ children }) {
         category: '',
     });
 
+    const [result, setResult] = useState(null); // { score, total } | null
+    const [isPlaying, setIsPlaying] = useState(false);
+
     const value = useMemo(
-        () => ({ settings, setSettings }),
-        [settings, setSettings]
+        () => ({
+            settings,
+            setSettings,
+
+            result,
+            setResult,
+
+            isPlaying,
+            setIsPlaying,
+        }),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [settings, result, isPlaying]
     );
 
     // React 19 style: use the context object as a component
