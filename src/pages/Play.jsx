@@ -1,4 +1,3 @@
-// UPDATED: added review building when finishing (look for // NEW comments)
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchOpenTdbRaw } from '../services/opentdb';
@@ -20,6 +19,19 @@ function formatMs(ms) {
     const s = String(sec % 60).padStart(2, '0');
     return `${s}s`;
 }
+
+// decode: simple DOM-based HTML entity decoder
+const decodeHtml = (() => {
+    let el;
+    return str => {
+        if (typeof str !== 'string') return str;
+        if (!el) {
+            el = document.createElement('textarea');
+        }
+        el.innerHTML = str;
+        return el.value;
+    };
+})();
 
 export default function Play() {
     const navigate = useNavigate();
@@ -79,13 +91,18 @@ export default function Play() {
 
                 // build answers with stable ids, shuffle for display
                 const processed = results.map((q, qIdx) => {
+                    // decode question & all answer labels before we store them
+                    const questionText = decodeHtml(q.question);
+                    const correctLabel = decodeHtml(q.correct_answer);
+                    const incorrectLabels = q.incorrect_answers.map(decodeHtml);
+
                     const options = [
                         {
                             id: `q${qIdx}-c`,
-                            label: q.correct_answer,
+                            label: correctLabel,
                             isCorrect: true,
                         },
-                        ...q.incorrect_answers.map((ans, i) => ({
+                        ...incorrectLabels.map((ans, i) => ({
                             id: `q${qIdx}-i${i}`,
                             label: ans,
                             isCorrect: false,
@@ -94,7 +111,7 @@ export default function Play() {
                     const shuffled = shuffle(options);
                     const correctId = shuffled.find(o => o.isCorrect)?.id;
                     return {
-                        question: q.question, // NOTE: raw HTML entities, for now
+                        question: questionText,
                         answers: shuffled.map(({ id, label }) => ({
                             id,
                             label,
@@ -179,15 +196,15 @@ export default function Play() {
             setFinished(true);
             endAtRef.current = null;
 
-            // NEW: build the review payload (zip items with selections)
+            // build the review payload (zip items with selections)
             const review = items.map((it, idx) => ({
-                question: it.question, // still raw entities for now
+                question: it.question,
                 answers: it.answers, // [{ id, label }]
                 correctId: it.correctId, // string
                 selectedId: selectedId[idx], // string | null
             }));
 
-            // NEW: include review in the result so Results page can render summary
+            // include review in the result so Results page can render summary
             setResult({ score: nextScore, total: items.length, review });
 
             setIsPlaying(false);
@@ -264,7 +281,6 @@ export default function Play() {
             {items.length > 0 ? (
                 <>
                     <div style={{ marginBottom: 16 }}>
-                        {/* NOTE: still raw HTML entities for now */}
                         <div style={{ fontWeight: 600, marginBottom: 6 }}>
                             {items[current].question}
                         </div>
