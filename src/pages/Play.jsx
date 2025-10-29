@@ -1,3 +1,4 @@
+// UPDATED: added review building when finishing (look for // NEW comments)
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchOpenTdbRaw } from '../services/opentdb';
@@ -178,7 +179,17 @@ export default function Play() {
             setFinished(true);
             endAtRef.current = null;
 
-            setResult({ score: nextScore, total: items.length });
+            // NEW: build the review payload (zip items with selections)
+            const review = items.map((it, idx) => ({
+                question: it.question, // still raw entities for now
+                answers: it.answers, // [{ id, label }]
+                correctId: it.correctId, // string
+                selectedId: selectedId[idx], // string | null
+            }));
+
+            // NEW: include review in the result so Results page can render summary
+            setResult({ score: nextScore, total: items.length, review });
+
             setIsPlaying(false);
             navigate('/results');
         } else {
@@ -226,7 +237,7 @@ export default function Play() {
 
     // Main quiz view
     return (
-        <section>
+        <section style={{ padding: '16px' }}>
             <h2>
                 Question {current + 1} of {items.length}
             </h2>

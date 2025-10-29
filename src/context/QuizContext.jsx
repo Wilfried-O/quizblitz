@@ -11,7 +11,9 @@ export function QuizProvider({ children }) {
         category: '',
     });
 
-    const [result, setResult] = useState(null); // { score, total } | null
+    // result now includes a review array
+    // shape: { score: number, total: number, review: Array<{ question, answers, correctId, selectedId }> } | null
+    const [result, setResult] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
 
     const value = useMemo(

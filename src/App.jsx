@@ -11,7 +11,7 @@ export default function App() {
         <BrowserRouter>
             {/* settings provided to the whole app */}
             <QuizProvider>
-                <main style={{ padding: 16 }}>
+                <main style={{ padding: 0 }}>
                     <Routes>
                         <Route path="/" element={<Home />} />
                         <Route

@@ -16,7 +16,7 @@ export default function Home() {
     };
 
     return (
-        <section>
+        <section style={{ padding: '16px' }}>
             <h1 style={{ marginBottom: 12 }}>Quiz</h1>
             <form
                 onSubmit={onStart}
