@@ -79,8 +79,9 @@ Fast-paced trivia at your fingertips.
     - Core quiz flow (fetch questions, show choices, submit answers)
     - Timer (drift-free) and scoring logic
     - Post-quiz summary (final score, correct answers)
+- ✅ **UX improvement:**
+    - Replace free-text category with a real category dropdown from Open Trivia DB categories.
 - ⚙️ **Work in Progress:**
-    - UX improvement: Replace free-text category with a real category dropdown from Open Trivia DB categories.
     - UI improvement: polish the look and use logo/branding mark/icons
     - Maintenance: major refactoring (component extraction, CSS modules, etc.)
 
