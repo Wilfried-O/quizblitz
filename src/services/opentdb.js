@@ -21,7 +21,7 @@ export async function ensureCooldown(minMs = 5000) {
         const elapsed = now - lastReqTime;
         const waitMs = minMs - elapsed;
         if (waitMs > 0) {
-            await delay(waitMs);
+            await delay(waitMs); // IMPORTANT reminder: this line will always be executed in React Dev mode
         }
         // set immediately so parallel calls don't all pass at once
         localStorage.setItem(LAST_REQ_KEY, String(Date.now()));
