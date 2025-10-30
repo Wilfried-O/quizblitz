@@ -20,7 +20,8 @@ function formatMs(ms) {
     return `${s}s`;
 }
 
-// decode: simple DOM-based HTML entity decoder
+// simple DOM-based HTML entity decoder
+// NOTE: safe from XSS attacks because we don't attach the element to the DOM
 const decodeHtml = (() => {
     let el;
     return str => {
