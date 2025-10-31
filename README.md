@@ -16,6 +16,8 @@ Fast-paced trivia at your fingertips.
 
 **QuizBlitz** is a lightweight trivia app built with **React.js**.
 
+The project is deployed to a Vercel website [(Click here)](quizblitz-tawny.vercel.app) for you to test the app right away!
+
 ---
 
 ## ✨ Features
