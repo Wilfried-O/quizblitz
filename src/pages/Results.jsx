@@ -1,165 +1,120 @@
+// Results.jsx
+// CHANGED: keep only "Score" in the header meta; removed other stats/summary.
+// CHANGED: no useMemo (fixes ESLint complaint about conditional hooks).
+// CHANGED: preserved scrollable review area + pinned actions layout.
+
 import { Link, Navigate } from 'react-router-dom';
 import { useQuizCtx } from '../context/QuizContext';
 
 export default function Results() {
     const { result } = useQuizCtx();
 
-    // if no finished result, send to Home
+    // Guard: if no result, bounce to Home (this is before any other hooks).
     if (!result) return <Navigate to="/" replace />;
 
     const { score, total, review } = result;
 
     return (
-        <div
-            style={{
-                background: '#f2f4f7',
-                minHeight: '100vh',
-                padding: '32px 16px',
-            }}
-        >
-            <section
-                style={{
-                    maxWidth: 760,
-                    margin: '0 auto',
-                }}
-            >
-                <div
-                    style={{
-                        background: '#fff',
-                        borderRadius: 12,
-                        boxShadow: '0 8px 28px rgba(0,0,0,0.08)',
-                        padding: 24,
-                    }}
-                >
-                    <h1 style={{ paddingBottom: 16 }}>Results</h1>
+        <section className="results-page">
+            {/* Card is flex column; scroll happens inside .results-scroll */}
+            <div className="results-card results-flex">
+                {/* === Header row (title left, only Score on the right) === */}
+                <div className="results-header">
+                    <h1 className="page-title">Results</h1>
 
-                    <p style={{ paddingTop: 10, fontSize: 16 }}>
-                        Score: <strong>{score}</strong> /{' '}
-                        <strong>{total}</strong>
-                    </p>
+                    <div className="results-meta">
+                        <div className="rmeta-item">
+                            <span className="rmeta-label">Score</span>
+                            <strong className="rmeta-value">
+                                {score} / {total}
+                            </strong>
+                        </div>
+                    </div>
+                </div>
 
-                    {/* Divider + Review block */}
-                    <div
-                        style={{
-                            paddingTop: 20,
-                            borderTop: '1px solid rgba(0,0,0,0.06)',
-                        }}
-                    >
-                        <h3 style={{ paddingBottom: 8 }}>Review</h3>
+                {/* === Scrollable review panel === */}
+                <div className="results-scroll">
+                    {/* Sticky subheader inside the scroll area */}
+                    <div className="results-scroll-header">Review</div>
 
-                        <ol style={{ paddingLeft: 18 }}>
-                            {review.map((item, idx) => {
-                                const correct = item.answers.find(
-                                    a => a.id === item.correctId
-                                ).label;
-                                const chosen = item.selectedId
-                                    ? item.answers.find(
-                                          a => a.id === item.selectedId
-                                      ).label
-                                    : null;
-                                const isCorrect =
-                                    chosen != null &&
-                                    item.selectedId === item.correctId;
+                    <ol className="review-list">
+                        {review.map((item, idx) => {
+                            const correct = item.answers.find(
+                                a => a.id === item.correctId
+                            )?.label;
+                            const chosen = item.selectedId
+                                ? item.answers.find(
+                                      a => a.id === item.selectedId
+                                  )?.label
+                                : null;
+                            const isCorrect =
+                                chosen != null &&
+                                item.selectedId === item.correctId;
 
-                                return (
-                                    <li
-                                        key={idx}
-                                        style={{
-                                            padding: '10px 0',
-                                            borderBottom:
-                                                idx < review.length - 1
-                                                    ? '1px dashed rgba(0,0,0,0.06)'
-                                                    : 'none',
-                                        }}
-                                    >
-                                        {/* question text (HTML entities may still be raw for now) */}
+                            return (
+                                <li key={idx} className="review-item">
+                                    <div className="review-row">
                                         <div
-                                            style={{
-                                                paddingBottom: 6,
-                                            }}
+                                            aria-label={
+                                                isCorrect
+                                                    ? 'Correct'
+                                                    : chosen
+                                                      ? 'Incorrect'
+                                                      : 'No answer'
+                                            }
+                                            title={
+                                                isCorrect
+                                                    ? 'Correct'
+                                                    : chosen
+                                                      ? 'Incorrect'
+                                                      : 'No answer'
+                                            }
+                                            className={`review-badge ${chosen ? (isCorrect ? 'ok' : 'bad') : 'none'}`}
                                         >
-                                            {item.question}
+                                            {isCorrect
+                                                ? '✅'
+                                                : chosen
+                                                  ? '❌'
+                                                  : '—'}
                                         </div>
 
-                                        <div
-                                            style={{
-                                                display: 'flex',
-                                                gap: 16,
-                                                flexWrap: 'wrap',
-                                                alignItems: 'center',
-                                                paddingTop: 2,
-                                            }}
-                                        >
-                                            <div
-                                                aria-label={
-                                                    isCorrect
-                                                        ? 'Correct'
-                                                        : 'Incorrect'
-                                                }
-                                                title={
-                                                    isCorrect
-                                                        ? 'Correct'
-                                                        : 'Incorrect'
-                                                }
-                                                style={{ fontSize: 18 }}
-                                            >
-                                                {isCorrect ? '✅' : '❌'}
+                                        <div className="review-main">
+                                            <div className="review-question">
+                                                {item.question}
                                             </div>
-
-                                            <div>
-                                                Your answer:{' '}
+                                            <div className="review-answers">
+                                                <span className="review-label">
+                                                    Your answer:
+                                                </span>{' '}
                                                 <strong
-                                                    style={{
-                                                        color: chosen
-                                                            ? isCorrect
-                                                                ? '#199a50'
-                                                                : '#c23b3b'
-                                                            : '#8a8f98',
-                                                    }}
+                                                    className={`answer-${chosen ? (isCorrect ? 'ok' : 'bad') : 'none'}`}
                                                 >
                                                     {chosen ?? 'No answer'}
                                                 </strong>
-                                            </div>
-
-                                            <div>
-                                                Correct answer:{' '}
+                                                <span className="sep">•</span>
+                                                <span className="review-label">
+                                                    Correct:
+                                                </span>{' '}
                                                 <strong>{correct}</strong>
                                             </div>
                                         </div>
-                                    </li>
-                                );
-                            })}
-                        </ol>
-                    </div>
-
-                    <div
-                        style={{
-                            display: 'flex',
-                            gap: 10,
-                            paddingTop: ' 30px',
-                        }}
-                    >
-                        <Link to="/play">
-                            <button
-                                style={{
-                                    padding: '8px 12px',
-                                    borderRadius: 8,
-                                    border: '1px solid #d0d5dd',
-                                    backgroundColor: 'navy',
-                                    color: 'white',
-                                    cursor: 'pointer',
-                                }}
-                            >
-                                Play again
-                            </button>
-                        </Link>
-
-                        <Link to="/" style={{ alignSelf: 'center' }}>
-                            Home
-                        </Link>
-                    </div>
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ol>
                 </div>
-            </section>
-        </div>
+
+                {/* === Footer actions (pinned) === */}
+                <div className="results-actions">
+                    <Link to="/play">
+                        <button className="btn-primary">Play again</button>
+                    </Link>
+                    <Link to="/" className="back-home">
+                        Home
+                    </Link>
+                </div>
+            </div>
+        </section>
     );
 }

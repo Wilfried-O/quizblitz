@@ -1,3 +1,4 @@
+// Play.jsx
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchOpenTdbRaw } from '../services/opentdb';
@@ -21,14 +22,11 @@ function formatMs(ms) {
 }
 
 // simple DOM-based HTML entity decoder
-// NOTE: safe from XSS attacks because we don't attach the element to the DOM
 const decodeHtml = (() => {
     let el;
     return str => {
         if (typeof str !== 'string') return str;
-        if (!el) {
-            el = document.createElement('textarea');
-        }
+        if (!el) el = document.createElement('textarea');
         el.innerHTML = str;
         return el.value;
     };
@@ -44,7 +42,7 @@ export default function Play() {
     const [items, setItems] = useState([]);
     const [selectedId, setSelectedId] = useState([]); // string|null per question
 
-    const [current, setCurrent] = useState(0); // track current question [0...items.length-1]
+    const [current, setCurrent] = useState(0); // track current question
     const [score, setScore] = useState(0);
     const [finished, setFinished] = useState(false);
 
@@ -64,7 +62,7 @@ export default function Play() {
         setError(null);
 
         setResult(null); // starting fresh run → remove previous result
-        setIsPlaying(true); //  mark active run
+        setIsPlaying(true); // mark active run
 
         // reset quiz state
         setItems([]);
@@ -83,16 +81,14 @@ export default function Play() {
                     ? json.results
                     : [];
 
-                // zero questions (e.g., bad params or API returned none)
+                // zero questions
                 if (!results.length) {
-                    setStatus('ready'); // we're "done" but have nothing to show
+                    setStatus('ready');
                     setIsPlaying(false);
                     return;
                 }
 
-                // build answers with stable ids, shuffle for display
                 const processed = results.map((q, qIdx) => {
-                    // decode question & all answer labels before we store them
                     const questionText = decodeHtml(q.question);
                     const correctLabel = decodeHtml(q.correct_answer);
                     const incorrectLabels = q.incorrect_answers.map(decodeHtml);
@@ -121,24 +117,21 @@ export default function Play() {
                     };
                 });
                 setItems(processed);
-
-                // init selection slots
                 setSelectedId(
                     Array.from({ length: processed.length }, () => null)
                 );
-
                 setStatus('ready');
             })
             .catch(err => {
                 if (err?.name === 'AbortError') return;
                 setError(err?.message || 'Failed to load');
                 setStatus('error');
-                setIsPlaying(false); // error aborts the run
+                setIsPlaying(false);
             });
 
         return () => {
             ctrl.abort();
-            setIsPlaying(false); // leaving /play ends the active run
+            setIsPlaying(false);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [amount, difficulty, category]);
@@ -151,10 +144,9 @@ export default function Play() {
         setRemainingMs(PER_Q_MS);
     }, [current, items.length, finished]);
 
-    // The ticking loop (drift-free), reading the deadline from the ref
+    // The ticking loop (drift-free)
     useEffect(() => {
         if (!endAtRef.current || finished || !items.length) return;
-
         let timeoutId;
 
         const tick = () => {
@@ -167,9 +159,8 @@ export default function Play() {
 
             if (remain === 0) {
                 autoAdvanceOnTimeout();
-                return; // next question effect will restart the timer
+                return;
             }
-
             const nextDelay = 1000 - (now % 1000);
             timeoutId = setTimeout(tick, nextDelay);
         };
@@ -179,17 +170,16 @@ export default function Play() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [current, finished, items.length, selectedId]);
 
-    // When a question times out: score if selected,
     const autoAdvanceOnTimeout = () => {
         if (finished || !items.length) return;
 
         const chosenId = selectedId[current];
         const correctId = items[current]?.correctId;
 
-        let nextScore = score; // capture the value we'll persist
+        let nextScore = score;
         if (chosenId && chosenId === correctId) {
             nextScore = score + 1;
-            setScore(s => s + 1); // used for updating UI
+            setScore(s => s + 1);
         }
 
         const isLast = current === items.length - 1;
@@ -197,17 +187,14 @@ export default function Play() {
             setFinished(true);
             endAtRef.current = null;
 
-            // build the review payload (zip items with selections)
             const review = items.map((it, idx) => ({
                 question: it.question,
-                answers: it.answers, // [{ id, label }]
-                correctId: it.correctId, // string
-                selectedId: selectedId[idx], // string | null
+                answers: it.answers,
+                correctId: it.correctId,
+                selectedId: selectedId[idx],
             }));
 
-            // include review in the result so Results page can render summary
             setResult({ score: nextScore, total: items.length, review });
-
             setIsPlaying(false);
             navigate('/results');
         } else {
@@ -224,119 +211,91 @@ export default function Play() {
         });
     };
 
-    if (status === 'loading') return <p>Loading…</p>;
+    if (status === 'loading') return <p className="page-loading">Loading…</p>;
 
     if (status === 'error') {
         return (
-            <section>
-                <p style={{ color: 'salmon' }}>Error: {error}</p>
-                <div style={{ marginTop: 12 }}>
+            <section className="play-page">
+                <p className="error-text">Error: {error}</p>
+                <div className="back-link">
                     <Link to="/">Home</Link>
                 </div>
             </section>
         );
     }
 
-    // ready but no questions -> show "Go Home"
     if (status === 'ready' && items.length === 0 && !finished) {
         return (
-            <section>
-                <h2>Sorry, no questions available</h2>
-                <p style={{ opacity: 0.85 }}>
+            <section className="play-page">
+                <h2 className="page-subtitle">Sorry, no questions available</h2>
+                <p className="muted">
                     Please, try different settings (amount, difficulty, or
                     category).
                 </p>
-                <div style={{ marginTop: 12 }}>
+                <div className="back-link">
                     <Link to="/">Home</Link>
                 </div>
             </section>
         );
     }
 
-    // Main quiz view
     return (
-        <section style={{ padding: '16px' }}>
-            <h2>
-                Question {current + 1} of {items.length}
-            </h2>
+        <section className="play-page">
+            {/* CHANGED: header row with title left, meta right (layout-only) */}
+            <div className="play-header">
+                <h1 className="page-title">
+                    Question {current + 1} of {items.length}
+                </h1>
 
-            {/* Timer */}
-            <div
-                style={{
-                    display: 'flex',
-                    gap: 16,
-                    alignItems: 'center',
-                    padding: '18px 0 28px',
-                }}
-            >
-                <div style={{ opacity: 0.8 }}>Score: {score}</div>
-                <div>
-                    Time left:{' '}
-                    <strong style={{ color: 'orange', fontSize: '1.2em' }}>
-                        {formatMs(remainingMs)}
-                    </strong>
+                {/* meta stays a div; not part of the h1 */}
+                <div className="quiz-meta">
+                    <div className="score">Score: {score}</div>
+                    <div className="time">
+                        Time left:{' '}
+                        <strong className="time-value">
+                            {formatMs(remainingMs)}
+                        </strong>
+                    </div>
                 </div>
             </div>
 
             {/* Current Question */}
             {items.length > 0 ? (
-                <>
-                    <div style={{ marginBottom: 16 }}>
-                        <div style={{ fontWeight: 600, marginBottom: 6 }}>
-                            {items[current].question}
-                        </div>
-                        <div style={{ opacity: 0.7, marginBottom: 8 }}>
-                            (select an answer)
-                        </div>
-
-                        <ul
-                            role="radiogroup"
-                            style={{ listStyle: 'none', paddingLeft: 0 }}
-                        >
-                            {items[current].answers.map(a => {
-                                const isSelected = selectedId[current] === a.id;
-                                return (
-                                    <li
-                                        key={a.id}
-                                        style={{
-                                            margin: '6px 0',
-                                            padding: '6px 8px',
-                                            borderRadius: 6,
-                                            background: isSelected
-                                                ? 'lightgrey'
-                                                : 'transparent',
-                                            outline: isSelected
-                                                ? '1px solid #39408a'
-                                                : '1px solid transparent',
-                                        }}
-                                    >
-                                        <label
-                                            style={{
-                                                display: 'inline-flex',
-                                                gap: 8,
-                                                alignItems: 'center',
-                                                cursor: 'pointer',
-                                            }}
-                                        >
-                                            <input
-                                                type="radio"
-                                                name={`q-${current}`}
-                                                checked={isSelected}
-                                                onChange={() =>
-                                                    onSelect(current, a.id)
-                                                }
-                                            />
-                                            <span>{a.label}</span>
-                                        </label>
-                                    </li>
-                                );
-                            })}
-                        </ul>
+                <div className="question-block">
+                    <div className="question-text">
+                        {items[current].question}
                     </div>
-                </>
+                    <div className="question-hint">(select an answer)</div>
+
+                    <ul className="answers">
+                        {items[current].answers.map(a => {
+                            const isSelected = selectedId[current] === a.id;
+                            return (
+                                <li
+                                    key={a.id}
+                                    className={`answer ${isSelected ? 'selected' : ''}`}
+                                >
+                                    <label className="answer-label">
+                                        <input
+                                            className="answer-input"
+                                            type="radio"
+                                            name={`q-${current}`}
+                                            checked={isSelected}
+                                            onChange={() =>
+                                                onSelect(current, a.id)
+                                            }
+                                        />
+                                        <span className="answer-text">
+                                            {a.label}
+                                        </span>
+                                    </label>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </div>
             ) : (
-                // This branch is unlikely now, but kept as a fallback
-                <p style={{ opacity: 0.8 }}>Sorry, no questions to display.</p>
+                <p className="muted">Sorry, no questions to display.</p>
             )}
         </section>
     );

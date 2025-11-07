@@ -1,7 +1,14 @@
+/* ===== Base / reset ===== */
 html,
 body,
 #root {
     height: 100%;
+}
+
+* {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
 }
 
 body {
@@ -16,7 +23,9 @@ body {
         sans-serif;
 }
 
+/* ===== App shell ===== */
 .app-container {
+    /* centered white card like your screenshot */
     width: min(92vw, 780px);
     margin: 8vh auto; /* centers horizontally; nice top/bottom space */
     padding: 28px 24px;
@@ -25,45 +34,519 @@ body {
     box-shadow:
         0 10px 30px rgba(11, 16, 32, 0.08),
         0 2px 6px rgba(11, 16, 32, 0.04);
-
-    text-align: center;
 }
 
-/* header row  */
+.qz-main {
+    /* page slot under the header */
+}
+
+/* Header row (already centered) */
 .qz-header {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 8px;
-    /*background-color: grey; /* [to-delete] */
+    margin-bottom: 8px; /* tiny spacing to the brand area; main spacing handled per page */
 }
-
 .qz-header svg {
-    display: block; /* removes inline-svg baseline gap */
+    display: block;
 }
-
 .qz-wordmark {
-    display: inline-block; /* better baseline alignment with SVG */
-    transform: translateY(-2px); /* tiny optical nudge */
+    display: inline-block;
+    transform: translateY(-2px);
 }
 
-h3 {
-    font-size: 18px;
-    font-weight: 800;
-    letter-spacing: 0.2px;
-    margin: 10px 0 4px;
+/* ===== Spacing system (2:1 rule for Home/Play) ===== */
+:root {
+    /* S = gap between elements inside pages; scales responsively */
+    --gap-form-button: clamp(12px, 2.2vw, 24px);
+    /* 2S = gap between header and the first block on the page */
+    --gap-header-form: calc(2 * var(--gap-form-button));
 }
-p {
+
+.page-title {
+    font-size: 20px;
+    line-height: 1.25;
+    font-weight: 700;
+    text-align: center; /* default center; Play/Results override to left */
+}
+
+/* ===== Home page ===== */
+.home-page {
+    /* create the 2:1 rhythm relative to the global header */
+    margin-top: var(--gap-header-form);
+}
+
+.settings-form {
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto; /* center the column */
+    display: flex;
+    flex-direction: column;
+    gap: 12px; /* internal form rhythm (smaller than S) */
+    margin-top: 12px;
+}
+
+/* basic field stack */
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.field-label {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.field-hint {
+    margin-top: 6px;
+    font-size: 13px;
+    opacity: 0.9;
+}
+.field-hint.error {
+    color: salmon;
+}
+
+.settings-form input,
+.settings-form select,
+.settings-form button {
+    padding: 8px 10px;
+}
+
+/* Actions block (Start Quiz) — spacing S below form */
+.actions {
+    display: flex;
+    justify-content: center;
+    margin-top: var(--gap-form-button);
+}
+
+/* ===== Play page ===== */
+.play-page {
+    /* match Home: header → content = 2S */
+    margin-top: var(--gap-header-form);
+}
+
+/* Header row with title left, meta right (keep FLEX) */
+.play-header {
+    display: flex;
+    align-items: center; /* center for optical balance */
+    justify-content: space-between;
+    gap: 12px;
+}
+
+/* Play title aligns left within the header row */
+.play-page .page-title {
+    text-align: left;
     margin: 0;
-    color: #4b5563;
 }
 
-/* small screens */
+/* Meta cluster on the right */
+.quiz-meta {
+    display: flex;
+    align-items: center; /* align Score and Time vertically */
+    justify-content: flex-end;
+    gap: 16px;
+    margin: 0;
+    line-height: 1.2; /* normalize line box */
+}
+
+/* Keep labels + values aligned inside each item */
+.quiz-meta .score,
+.quiz-meta .time {
+    display: flex;
+    align-items: baseline; /* label + value share a baseline */
+    gap: 6px;
+}
+
+/* Timer value: a touch bigger, reserve width to avoid jitter */
+.time-value {
+    font-size: 1.2em;
+    line-height: 1; /* remove extra ascent/descent */
+    display: inline-block;
+    min-width: 3.2ch; /* space for “00s/99s” */
+    color: orange; /* unchanged color */
+}
+
+/* Question area: narrower for focus; extra breathing room under header row */
+.question-block {
+    max-width: clamp(560px, 70vw, 640px);
+    margin: calc(1.25 * var(--gap-form-button)) auto 0; /* +25% below header */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Equalize: question → hint = S, hint → answers = S */
+.question-text {
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: var(--gap-form-button);
+}
+.question-hint {
+    opacity: 0.7;
+    text-align: center;
+    margin-bottom: var(--gap-form-button);
+}
+
+/* Answers: centered 2×2 grid (or 2×1 for boolean), equal heights per row */
+.answers {
+    list-style: none;
+    padding-left: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    grid-auto-rows: 1fr; /* equal card heights per row */
+    gap: var(--gap-form-button); /* equal row/col gap = S */
+    justify-content: center; /* center the grid area */
+    align-items: stretch;
+    margin: 0 auto var(--gap-form-button); /* bottom breathing space */
+    width: 100%;
+}
+
+/* ===== Answer card styling ===== */
+
+/* let each grid item be a flex container so the card can stretch */
+.answer {
+    display: flex;
+}
+
+/* card becomes the “clickable radio” and fills the cell */
+.answer-label {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    height: 100%; /* equal height per row */
+    width: 100%;
+    min-height: 64px; /* comfy tap target */
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid #d0d5dd;
+    background: #f9fafb;
+    cursor: pointer;
+    user-select: none;
+    transition:
+        background 0.15s ease,
+        box-shadow 0.15s ease,
+        border-color 0.15s ease;
+}
+
+/* robust wrapping for long answers */
+.answer-text {
+    flex: 1;
+    line-height: 1.35;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+/* visually hide the native radio but keep it accessible */
+.answer-input {
+    position: absolute !important;
+    opacity: 0 !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
+}
+
+/* Hover/active feedback on the card itself */
+@media (hover: hover) {
+    .answer-label:hover {
+        background: #f3f4f6;
+        box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
+    }
+}
+.answer-label:active {
+    background: #eef2ff;
+}
+
+/* Selected state (JS adds .selected on <li>) */
+.answer.selected .answer-label {
+    background: #eef2ff;
+    border-color: #39408a;
+    box-shadow: 0 0 0 2px rgba(57, 64, 138, 0.15);
+    font-weight: 600;
+}
+
+/* Keyboard focus ring on the card */
+.answer-input:focus-visible + .answer-text,
+.answer-label:focus-within {
+    outline: 2px solid #39408a;
+    outline-offset: 2px;
+}
+
+/* Loading / errors */
+.page-loading {
+    text-align: center;
+    margin-top: 18px;
+}
+.error-text {
+    color: salmon;
+}
+.back-link {
+    margin-top: 12px;
+}
+
+.page-subtitle {
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.muted {
+    opacity: 0.85;
+}
+
+/* ===== Results page (NEW LAYOUT) ===== */
+
+/* align with Home/Play rhythm */
+.results-page {
+    margin-top: var(--gap-header-form);
+}
+
+/* base card styles (kept) */
+.results-card {
+    max-width: 760px;
+    margin: 0 auto;
+    border-radius: 12px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
+    padding: 24px;
+}
+
+/* make the results card a flex column with a capped height.
+   The scroll will happen INSIDE this card, not the full page. */
+.results-card.results-flex {
+    display: flex;
+    flex-direction: column;
+    max-height: min(78vh, 760px);
+    padding: 20px 20px 16px; /* slightly tighter to fit header+footer */
+}
+
+/* header row (like Play header) */
+.results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.results-page .page-title {
+    text-align: left; /* align with Play */
+    margin: 0;
+}
+
+/* meta cluster (right side of header) — only shows Score now */
+.results-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+}
+.rmeta-item {
+    display: flex;
+    gap: 6px;
+}
+.rmeta-label {
+    opacity: 0.8;
+}
+.rmeta-value {
+    font-weight: 700;
+}
+
+/* scrollable panel */
+.results-scroll {
+    flex: 1 1 auto;
+    overflow: auto;
+    margin-top: 8px;
+    padding-right: 8px; /* stronger gutter near scrollbar */
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    /* subtle inset shadows to signal overflow */
+    box-shadow:
+        inset 0 8px 8px -8px rgba(0, 0, 0, 0.08),
+        inset 0 -8px 8px -8px rgba(0, 0, 0, 0.08);
+}
+
+/* sticky subheader inside scroll */
+.results-scroll-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #fff; /* match app-container white */
+    padding: 10px 0;
+    font-weight: 700;
+}
+
+/* review list with fixed index column and lighter separators */
+.review-list {
+    list-style: none;
+    counter-reset: r;
+    padding-left: 0; /* we handle index ourselves */
+    padding-right: 8px; /* extra gutter inside list */
+}
+.review-item {
+    display: grid;
+    grid-template-columns: 2.3ch 28px 1fr; /* [index][badge][content] */
+    column-gap: 12px;
+    align-items: start;
+    position: relative;
+    padding: 12px 0; /* a bit more breathing room */
+    border-bottom: 1px dashed rgba(0, 0, 0, 0.04); /* lighter separator */
+}
+.review-item:last-child {
+    border-bottom: 0;
+}
+.review-item::before {
+    counter-increment: r;
+    content: counter(r) '.';
+    text-align: right;
+    opacity: 0.7;
+    line-height: 26px; /* align with badge height */
+}
+
+/* inner row sits in columns 2..end (badge + content) */
+.review-row {
+    grid-column: 2 / -1;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px 14px;
+    align-items: start;
+}
+
+/* badge tune (slightly smaller, centered) */
+.review-badge {
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    font-size: 14px;
+    line-height: 1;
+    background: #f3f4f6;
+}
+.review-badge.ok {
+    background: #e7f8ee;
+}
+.review-badge.bad {
+    background: #fde8e8;
+}
+.review-badge.none {
+    background: #f1f5f9;
+}
+
+.review-main {
+    min-width: 0;
+}
+.review-question {
+    font-weight: 600;
+    margin-bottom: 6px;
+    line-height: 1.3; /* easier reading */
+}
+.review-answers {
+    font-size: 14px;
+    opacity: 0.95;
+    line-height: 1.4; /* gentle density */
+}
+.review-label {
+    opacity: 0.8;
+}
+.sep {
+    opacity: 0.5;
+    padding: 0 6px;
+}
+
+/* existing colors reused */
+.answer-ok {
+    color: #199a50;
+}
+.answer-bad {
+    color: #c23b3b;
+}
+.answer-none {
+    color: #8a8f98;
+}
+
+/* footer actions pinned at the bottom */
+.results-actions {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 10px;
+    padding-top: 14px;
+    justify-content: center;
+    align-items: center;
+}
+
+/* buttons (layout-only weight) */
+.btn-primary {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #d0d5dd;
+    background-color: navy;
+    color: white;
+    cursor: pointer;
+}
+.back-home {
+    align-self: center;
+}
+
+/* ===== responsive ===== */
+@media (max-width: 680px) {
+    /* stack Play header row */
+    .play-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+    .play-page .page-title {
+        text-align: left; /* keep left for continuity */
+    }
+    .quiz-meta {
+        justify-content: flex-start;
+        gap: 12px;
+    }
+
+    .question-block {
+        max-width: 100%;
+        margin-top: var(--gap-form-button);
+    }
+
+    /* stack answers to one column on small screens */
+    .answers {
+        grid-template-columns: 1fr;
+        grid-auto-rows: auto; /* natural height when single column */
+        gap: var(--gap-form-button);
+    }
+
+    /* results header stacks like Play */
+    .results-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+    .results-meta {
+        justify-content: flex-start;
+        gap: 12px;
+    }
+    .results-card.results-flex {
+        max-height: min(80vh, 760px);
+    }
+
+    /* mobile-friendly actions */
+    .results-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    .results-actions .btn-primary {
+        width: 100%;
+    }
+    .results-actions .back-home {
+        margin-top: 2px;
+    }
+}
+
 @media (max-width: 420px) {
     .app-container {
         padding: 22px 18px;
     }
     .qz-header {
         gap: 10px;
+    }
+    .answers {
+        gap: 6px;
     }
 }

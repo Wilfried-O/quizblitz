@@ -4,12 +4,10 @@ import { useQuizCtx } from '../context/QuizContext';
 import { fetchCategories } from '../services/opentdb';
 
 export default function Home() {
-    const { settings, setSettings } = useQuizCtx(); // read/write persisted settings
-    // local draft to avoid unnecessary localStorage writes with each change of value in the form
+    const { settings, setSettings } = useQuizCtx();
     const [draftSettings, setDraftSettings] = useState(settings);
 
     const [categories, setCategories] = useState([]); // [{ id, name }]
-
     const [catStatus, setCatStatus] = useState('idle'); // 'idle' | 'loading' | 'ready' | 'error'
     const [catError, setCatError] = useState(null);
     const navigate = useNavigate();
@@ -47,26 +45,19 @@ export default function Home() {
 
     const onStart = e => {
         e.preventDefault();
-        // persist the draft settings only when starting
-        setSettings(draftSettings);
+        setSettings(draftSettings); // persist only when starting
         navigate('/play');
     };
 
     return (
-        <section style={{ padding: '16px' }}>
-            <h1 style={{ marginBottom: 12 }}>Quiz</h1>
-            <form
-                onSubmit={onStart}
-                style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 12,
-                    maxWidth: 420,
-                }}
-            >
-                <label>
-                    {/* wraps text & input: automatic association, no need for id/htmlFor */}
-                    Questions:{' '}
+        <section className="home-page">
+            {/* NOTE: The brand header is global; this is the page title for semantics */}
+            <h1 className="page-title">Quiz settings</h1>
+
+            {/* SETTINGS FORM (centered column) */}
+            <form className="settings-form" onSubmit={onStart}>
+                <label className="field">
+                    <span className="field-label">Questions</span>
                     <input
                         type="number"
                         min="1"
@@ -81,8 +72,8 @@ export default function Home() {
                     />
                 </label>
 
-                <label>
-                    Difficulty:{' '}
+                <label className="field">
+                    <span className="field-label">Difficulty</span>
                     <select
                         value={draftSettings.difficulty}
                         onChange={e =>
@@ -99,23 +90,21 @@ export default function Home() {
                     </select>
                 </label>
 
-                {/* real Category dropdown sourced from OpenTDB */}
-                <label>
-                    Category:{' '}
+                {/* Category from OpenTDB */}
+                <label className="field">
+                    <span className="field-label">Category</span>
                     <select
                         value={draftSettings.category}
                         onChange={e =>
                             setDraftSettings(prev => ({
                                 ...prev,
-                                // store the id as string; empty string means "Any"
-                                category: e.target.value,
+                                category: e.target.value, // empty string means "Any"
                             }))
                         }
                         disabled={
                             catStatus === 'loading' || catStatus === 'error'
                         }
                         aria-busy={catStatus === 'loading'}
-                        style={{ minWidth: 260 }}
                     >
                         <option value="">
                             {catStatus === 'loading'
@@ -129,18 +118,18 @@ export default function Home() {
                                 </option>
                             ))}
                     </select>
+
                     {catStatus === 'error' && (
-                        <div style={{ color: 'salmon', paddingTop: 6 }}>
-                            {catError} — using “Any category”.
+                        <div className="field-hint error">
+                            {catError} — using &quot;Any category&quot;.
                         </div>
                     )}
                 </label>
 
-                <div style={{ marginTop: 12 }}>
+                {/* ACTIONS (kept separate for spacing control) */}
+                <div className="actions">
                     <button
                         type="submit"
-                        // only block if a specific category is persisted AND categories are still loading:
-                        // that prevents an obsolete category to be selected (pretty rare edge case)
                         disabled={
                             catStatus === 'loading' &&
                             draftSettings.category !== ''
