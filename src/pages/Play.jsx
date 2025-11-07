@@ -1,4 +1,3 @@
-// Play.jsx
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchOpenTdbRaw } from '../services/opentdb';
@@ -61,7 +60,7 @@ export default function Play() {
         setStatus('loading');
         setError(null);
 
-        setResult(null); // starting fresh run → remove previous result
+        setResult(null); // starting fresh run -> remove previous result
         setIsPlaying(true); // mark active run
 
         // reset quiz state
@@ -241,13 +240,11 @@ export default function Play() {
 
     return (
         <section className="play-page">
-            {/* CHANGED: header row with title left, meta right (layout-only) */}
             <div className="play-header">
                 <h1 className="page-title">
                     Question {current + 1} of {items.length}
                 </h1>
 
-                {/* meta stays a div; not part of the h1 */}
                 <div className="quiz-meta">
                     <div className="score">Score: {score}</div>
                     <div className="time">

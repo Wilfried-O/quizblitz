@@ -2,13 +2,17 @@
 
 Fast-paced trivia at your fingertips.
 
-| ![App Preview](preview-app-play-view.png) |
+| ![App Preview](preview-app-home-page.png) |
 | :---------------------------------------: |
-|      _Image 1 — View when playing._       |
+|          _Image 1 — Home page._           |
 
-| ![App Preview](preview-app-results-view.png) |
+| ![App Preview](preview-app-play-page.png) |
+| :---------------------------------------: |
+|      _Image 2 — view when playing._       |
+
+| ![App Preview](preview-app-results-page.png) |
 | :------------------------------------------: |
-|        _Image 2 — The results page._         |
+|        _Image 3 — The results page._         |
 
 > Note: This is not the final version of the UI.
 
@@ -81,10 +85,10 @@ The project is deployed to a Vercel website [(Click here)](https://quizblitz-taw
     - Core quiz flow (fetch questions, show choices, submit answers)
     - Timer (drift-free) and scoring logic
     - Post-quiz summary (final score, correct answers)
-- ✅ **UX improvement:**
-    - Replace free-text category with a real category dropdown from Open Trivia DB categories.
+- ✅ **UI improvement:**
+    - Improved layout and using logo/branding mark
 - ⚙️ **Work in Progress:**
-    - UI improvement: polish the look and use logo/branding mark/icons
+    - UI improvement: polish the look (and use icons ?)
     - Maintenance: major refactoring (component extraction, CSS modules, etc.)
 
 ### 🧭 Next Steps

@@ -1,4 +1,3 @@
-// CHANGED: add AppHeader + shared container; remove inline style on <main>
 import './App.css';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import NotFound from './pages/NotFound';
@@ -7,18 +6,16 @@ import Play from './pages/Play';
 import PlayGate from './pages/gates/PlayGate';
 import { QuizProvider } from './context/QuizContext';
 import Results from './pages/Results';
-import AppHeader from './AppHeader'; // NEW
+import AppHeader from './AppHeader';
 
 export default function App() {
     return (
         <BrowserRouter>
             {/* settings provided to the whole app */}
             <QuizProvider>
-                {/* CHANGED: Shared app shell (header + main) */}
                 <div className="app-container">
                     <AppHeader />
 
-                    {/* CHANGED: page slot */}
                     <main className="qz-main">
                         <Routes>
                             <Route path="/" element={<Home />} />

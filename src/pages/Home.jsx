@@ -54,7 +54,7 @@ export default function Home() {
             {/* NOTE: The brand header is global; this is the page title for semantics */}
             <h1 className="page-title">Quiz settings</h1>
 
-            {/* SETTINGS FORM (centered column) */}
+            {/* SETTINGS FORM */}
             <form className="settings-form" onSubmit={onStart}>
                 <label className="field">
                     <span className="field-label">Questions</span>
@@ -126,7 +126,7 @@ export default function Home() {
                     )}
                 </label>
 
-                {/* ACTIONS (kept separate for spacing control) */}
+                {/* ACTIONS */}
                 <div className="actions">
                     <button
                         type="submit"
