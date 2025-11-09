@@ -1,3 +1,4 @@
+import Button from '../components/ui/Button';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuizCtx } from '../context/QuizContext';
@@ -11,6 +12,11 @@ export default function Home() {
     const [catStatus, setCatStatus] = useState('idle'); // 'idle' | 'loading' | 'ready' | 'error'
     const [catError, setCatError] = useState(null);
     const navigate = useNavigate();
+
+    // Page title
+    useEffect(() => {
+        document.title = 'QuizBlitz - Settings';
+    }, []);
 
     // load categories (uses TTL cache + centralized 5s cooldown in the service)
     useEffect(() => {
@@ -84,9 +90,9 @@ export default function Home() {
                         }
                     >
                         <option value="">Any</option>
-                        <option value="easy">easy</option>
-                        <option value="medium">medium</option>
-                        <option value="hard">hard</option>
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
                     </select>
                 </label>
 
@@ -126,17 +132,18 @@ export default function Home() {
                     )}
                 </label>
 
-                {/* ACTIONS */}
                 <div className="actions">
-                    <button
+                    <Button
+                        variant="primary"
+                        className=" btn-lg with-transition"
                         type="submit"
                         disabled={
                             catStatus === 'loading' &&
                             draftSettings.category !== ''
                         }
                     >
-                        Start Quiz
-                    </button>
+                        Start
+                    </Button>
                 </div>
             </form>
         </section>

@@ -1,8 +1,24 @@
+import Pill from '../components/ui/Pill';
+import { useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { useQuizCtx } from '../context/QuizContext';
 
 export default function Results() {
     const { result } = useQuizCtx();
+
+    useEffect(() => {
+        if (!result) {
+            // No data yet (or user navigated directly)
+            document.title = 'QuizBlitz - Results';
+            return () => {
+                document.title = 'QuizBlitz';
+            };
+        }
+        document.title = `QuizBlitz - Results (${result.score}/${result.total})`;
+        return () => {
+            document.title = 'QuizBlitz';
+        };
+    }, [result]);
 
     // Guard: if no result, bounce to Home
     if (!result) return <Navigate to="/" replace />;
@@ -16,12 +32,11 @@ export default function Results() {
                     <h1 className="page-title">Results</h1>
 
                     <div className="results-meta">
-                        <div className="rmeta-item">
-                            <span className="rmeta-label">Score</span>
-                            <strong className="rmeta-value">
-                                {score} / {total}
-                            </strong>
-                        </div>
+                        <Pill
+                            label="Final Score"
+                            value={`${score} / ${total}`}
+                            aria-label={`Score ${score} out of ${total}`}
+                        />
                     </div>
                 </div>
 
@@ -99,11 +114,14 @@ export default function Results() {
 
                 {/* === Footer actions (pinned) === */}
                 <div className="results-actions">
-                    <Link to="/play">
-                        <button className="btn-primary">Play again</button>
+                    <Link
+                        to="/play"
+                        className="btn btn-primary with-transition"
+                    >
+                        Play again
                     </Link>
                     <Link to="/" className="back-home">
-                        Home
+                        Back to settings
                     </Link>
                 </div>
             </div>

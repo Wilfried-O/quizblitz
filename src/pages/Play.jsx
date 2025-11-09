@@ -1,3 +1,4 @@
+import Pill from '../components/ui/Pill';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { fetchOpenTdbRaw } from '../services/opentdb';
@@ -53,6 +54,16 @@ export default function Play() {
     const PER_Q_MS = 20_000;
     const [remainingMs, setRemainingMs] = useState(PER_Q_MS);
     const endAtRef = useRef(null); // for deadline
+
+    // Page title
+    useEffect(() => {
+        document.title = 'QuizBlitz - Play';
+    }, []);
+    useEffect(() => {
+        if (items.length) {
+            document.title = `QuizBlitz - Question ${current + 1} of ${items.length}`;
+        }
+    }, [current, items.length]);
 
     // Fetch & initialize quiz
     useEffect(() => {
@@ -246,9 +257,12 @@ export default function Play() {
                 </h1>
 
                 <div className="quiz-meta">
-                    <div className="score">Score: {score}</div>
+                    <Pill
+                        label="Score"
+                        value={`${score} / ${items.length || 0}`}
+                    />
                     <div className="time">
-                        Time left:{' '}
+                        Time left{' '}
                         <strong className="time-value">
                             {formatMs(remainingMs)}
                         </strong>
@@ -259,37 +273,45 @@ export default function Play() {
             {/* Current Question */}
             {items.length > 0 ? (
                 <div className="question-block">
-                    <div className="question-text">
-                        {items[current].question}
-                    </div>
-                    <div className="question-hint">(select an answer)</div>
+                    <fieldset
+                        role="radiogroup"
+                        className="qz-fieldset"
+                        aria-labelledby={`q-${current}-legend`}
+                    >
+                        <legend
+                            id={`q-${current}-legend`}
+                            className="question-text"
+                        >
+                            {items[current].question}
+                        </legend>
 
-                    <ul className="answers">
-                        {items[current].answers.map(a => {
-                            const isSelected = selectedId[current] === a.id;
-                            return (
-                                <li
-                                    key={a.id}
-                                    className={`answer ${isSelected ? 'selected' : ''}`}
-                                >
-                                    <label className="answer-label">
-                                        <input
-                                            className="answer-input"
-                                            type="radio"
-                                            name={`q-${current}`}
-                                            checked={isSelected}
-                                            onChange={() =>
-                                                onSelect(current, a.id)
-                                            }
-                                        />
-                                        <span className="answer-text">
-                                            {a.label}
-                                        </span>
-                                    </label>
-                                </li>
-                            );
-                        })}
-                    </ul>
+                        <ul className="answers">
+                            {items[current].answers.map(a => {
+                                const isSelected = selectedId[current] === a.id;
+                                return (
+                                    <li
+                                        key={a.id}
+                                        className={`answer ${isSelected ? 'selected' : ''}`}
+                                    >
+                                        <label className="answer-label with-transition">
+                                            <input
+                                                className="answer-input"
+                                                type="radio"
+                                                name={`q-${current}`}
+                                                checked={isSelected}
+                                                onChange={() =>
+                                                    onSelect(current, a.id)
+                                                }
+                                            />
+                                            <span className="answer-text">
+                                                {a.label}
+                                            </span>
+                                        </label>
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </fieldset>
                 </div>
             ) : (
                 <p className="muted">Sorry, no questions to display.</p>

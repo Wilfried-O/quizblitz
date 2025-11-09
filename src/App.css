@@ -11,16 +11,54 @@ body,
     margin: 0;
 }
 
+/* ===== Design tokens ===== */
+:root {
+    /* brand */
+    --brand-1: #ff006e; /* magma pink */
+    --brand-2: #ffb86b; /* peach */
+
+    /* neutrals */
+    --bg: #f3f4f6; /* app background (gray-100) */
+    --surface: #ffffff; /* card surface */
+    --text: #0b1020; /* main text */
+    --muted: #6b7280; /* secondary text */
+    --border: #d0d5dd; /* border neutral */
+    --border-soft: rgba(0, 0, 0, 0.06);
+
+    /* states */
+    --ok: #199a50;
+    --bad: #c23b3b;
+    --none: #8a8f98;
+    --error: salmon;
+    --warn: #d97706;
+
+    /* interactive */
+    --focus: #39408a; /* focus ring + selected border */
+    --answer-selected-bg: #eef2ff;
+    --answer-hover-bg: #f3f4f6;
+    --answer-bg: #f9fafb;
+
+    /* radii */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+
+    /* shadows */
+    --shadow-1:
+        0 10px 30px rgba(11, 16, 32, 0.08), 0 2px 6px rgba(11, 16, 32, 0.04);
+
+    /* spacing rhythm */
+    --gap-form-button: clamp(12px, 2.2vw, 24px); /* S */
+    --gap-header-form: calc(2 * var(--gap-form-button)); /* 2S */
+
+    /* typography */
+    --font: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
 body {
-    background: #f3f4f6;
-    color: #0b1020;
-    font-family:
-        Inter,
-        system-ui,
-        -apple-system,
-        Segoe UI,
-        Roboto,
-        sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
 }
 
 /* ===== App shell ===== */
@@ -29,15 +67,9 @@ body {
     width: min(92vw, 780px);
     margin: 8vh auto; /* centers horizontally; nice top/bottom space */
     padding: 28px 24px;
-    background: #fff;
-    border-radius: 16px;
-    box-shadow:
-        0 10px 30px rgba(11, 16, 32, 0.08),
-        0 2px 6px rgba(11, 16, 32, 0.04);
-}
-
-.qz-main {
-    /* page slot under the header */
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
 }
 
 /* Header row (already centered) */
@@ -55,14 +87,22 @@ body {
     transform: translateY(-2px);
 }
 
-/* ===== Spacing system (2:1 rule for Home/Play) ===== */
-:root {
-    /* S = gap between elements inside pages; scales responsively */
-    --gap-form-button: clamp(12px, 2.2vw, 24px);
-    /* 2S = gap between header and the first block on the page */
-    --gap-header-form: calc(2 * var(--gap-form-button));
+/* ===== Global focus ring & transitions ===== */
+*:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+@media (prefers-reduced-motion: no-preference) {
+    .with-transition {
+        transition:
+            background 150ms ease,
+            border-color 150ms ease,
+            box-shadow 150ms ease,
+            color 150ms ease;
+    }
 }
 
+/* ===== Spacing system ===== */
 .page-title {
     font-size: 20px;
     line-height: 1.25;
@@ -103,20 +143,87 @@ body {
     opacity: 0.9;
 }
 .field-hint.error {
-    color: salmon;
+    color: var(--error);
 }
 
-.settings-form input,
-.settings-form select,
-.settings-form button {
-    padding: 8px 10px;
+/* Inputs / selects (UI kit) */
+input[type='text'],
+input[type='number'],
+select,
+button {
+    font: inherit;
+}
+input[type='text'],
+input[type='number'],
+select {
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+}
+select[disabled] {
+    opacity: 0.75;
 }
 
-/* Actions block ("Start Quiz") — spacing S below form */
+/* Actions block ("Start") — spacing S below form */
 .actions {
     display: flex;
     justify-content: center;
     margin-top: var(--gap-form-button);
+}
+
+/* ===== Buttons ===== */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    text-decoration: none;
+    background: var(--surface);
+    color: var(--text);
+}
+.btn-lg {
+    padding: 12px 16px;
+    font-size: 20px;
+    border-radius: var(--radius-md);
+    min-width: 100px; /* keeps a nice pill width */
+}
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.btn-primary {
+    border-color: transparent;
+    background: linear-gradient(90deg, var(--brand-1), var(--brand-2));
+    color: #fff;
+}
+
+/* 
+--------------------------------------------------
+Button variants (optional / future use)
+--------------------------------------------------
+.btn-secondary — a lower-emphasis action. 
+  Example: "Back to Home" or "Change Settings"
+  Look: bordered or flat, neutral tone.
+
+.btn-ghost — the lightest action, often used for
+  subtle controls or icon-only buttons.
+  Look: transparent background, no border.
+--------------------------------------------------
+*/
+.btn-secondary {
+    background: var(--surface);
+    color: var(--text);
+}
+.btn-ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--text);
 }
 
 /* ===== Play page ===== */
@@ -128,15 +235,30 @@ body {
 /* Header row with title left, meta right */
 .play-header {
     display: flex;
-    align-items: center; /* center for optical balance */
+    align-items: center; /* optical balance */
     justify-content: space-between;
     gap: 12px;
+
+    /* non-sticky, but visually elevated */
+    background: var(--surface);
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-soft);
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.06),
+        /* soft drop like the old sticky */ 0 1px 0 rgba(0, 0, 0, 0.02); /* tiny top sheen */
+
+    /* make sure the shadow isn’t clipped */
+    position: static;
+    overflow: visible;
 }
 
-/* Play title aligns left within the header row */
 .play-page .page-title {
     text-align: left;
     margin: 0;
+    font-weight: 500; /* subtler than 700 */
+    color: var(--muted); /* de-emphasize vs. question text */
+    font-size: 18px; /* slightly smaller */
 }
 
 /* Meta cluster on the right */
@@ -147,6 +269,28 @@ body {
     gap: 16px;
     margin: 0;
     line-height: 1.2; /* normalize line box */
+}
+
+/* Score pill (compact, neutral) */
+.score-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--answer-bg);
+    font-weight: 600;
+}
+.score-pill .sep {
+    opacity: 0.45;
+}
+/* lighter feel for the score in Play header */
+.play-header .score-pill {
+    font-size: 0.95em;
+}
+.play-header .score-pill strong {
+    font-weight: 500;
 }
 
 /* Keep labels + values aligned inside each item */
@@ -163,30 +307,43 @@ body {
     line-height: 1; /* remove extra ascent/descent */
     display: inline-block;
     min-width: 3.2ch; /* space for “00s/99s” */
-    color: orange; /* unchanged color */
+    color: var(--warn);
 }
 
 /* Question area: narrower for focus; extra breathing room under header row */
 .question-block {
     max-width: clamp(560px, 70vw, 640px);
-    margin: calc(1.25 * var(--gap-form-button)) auto 0; /* +25% below header */
+    margin: calc(1.8 * var(--gap-form-button)) auto 0; /* +80% below header */
     display: flex;
     flex-direction: column;
 }
 
-/* Equalize: question → hint = S, hint → answers = S */
+/* Fieldset/legend reset to keep semantics but no chrome/outline/border */
+.qz-fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-inline-size: 0;
+}
+.qz-fieldset > legend {
+    float: unset;
+    width: 100%;
+    padding: 0;
+    margin: 0 0 var(--gap-form-button);
+    display: block;
+    text-align: center;
+}
+
 .question-text {
     font-weight: 600;
     text-align: center;
     margin-bottom: var(--gap-form-button);
-}
-.question-hint {
-    opacity: 0.7;
-    text-align: center;
-    margin-bottom: var(--gap-form-button);
+    max-width: 48ch; /* comfy reading width */
+    margin-left: auto; /* center with the max-width */
+    margin-right: auto;
 }
 
-/* Answers: centered 2×2 grid (or 2×1 for boolean), equal heights per row */
+/* Answers: centered 2×2 grid (or 2×1 for boolean choice), equal heights per row */
 .answers {
     list-style: none;
     padding-left: 0;
@@ -210,28 +367,23 @@ body {
 .answer-label {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center; /* center text inside box */
     height: 100%; /* equal height per row */
     width: 100%;
     min-height: 64px; /* comfy tap target */
-    padding: 12px 14px;
-    border-radius: 8px;
-    border: 1px solid #d0d5dd;
-    background: #f9fafb;
+    padding: 14px 16px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--answer-bg);
     cursor: pointer;
     user-select: none;
-    transition:
-        background 0.15s ease,
-        box-shadow 0.15s ease,
-        border-color 0.15s ease;
 }
-
-/* robust wrapping for long answers */
 .answer-text {
     flex: 1;
     line-height: 1.35;
     word-break: break-word;
     overflow-wrap: anywhere;
+    text-align: center; /* multi-line answers centered nicely */
 }
 
 /* visually hide the native radio but keep it accessible */
@@ -249,26 +401,25 @@ body {
 /* Hover/active feedback on the card itself */
 @media (hover: hover) {
     .answer-label:hover {
-        background: #f3f4f6;
+        background: var(--answer-hover-bg);
         box-shadow: 0 1px 0 rgba(0, 0, 0, 0.02);
     }
 }
 .answer-label:active {
-    background: #eef2ff;
+    background: var(--answer-selected-bg);
 }
 
-/* Selected state (JS adds .selected on <li>) */
+/* Selected state */
 .answer.selected .answer-label {
-    background: #eef2ff;
-    border-color: #39408a;
-    box-shadow: 0 0 0 2px rgba(57, 64, 138, 0.15);
+    background: var(--answer-selected-bg);
+    border-color: var(--focus);
+    box-shadow: 0 0 0 2px rgba(57, 64, 138, 0.18);
     font-weight: 600;
 }
 
 /* Keyboard focus ring on the card */
-.answer-input:focus-visible + .answer-text,
 .answer-label:focus-within {
-    outline: 2px solid #39408a;
+    outline: 2px solid var(--focus);
     outline-offset: 2px;
 }
 
@@ -278,7 +429,7 @@ body {
     margin-top: 18px;
 }
 .error-text {
-    color: salmon;
+    color: var(--error);
 }
 .back-link {
     margin-top: 12px;
@@ -304,7 +455,7 @@ body {
 .results-card {
     max-width: 760px;
     margin: 0 auto;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.08);
     padding: 24px;
 }
@@ -334,16 +485,6 @@ body {
     align-items: baseline;
     gap: 16px;
 }
-.rmeta-item {
-    display: flex;
-    gap: 6px;
-}
-.rmeta-label {
-    opacity: 0.8;
-}
-.rmeta-value {
-    font-weight: 700;
-}
 
 /* scrollable panel */
 .results-scroll {
@@ -351,8 +492,8 @@ body {
     overflow: auto;
     margin-top: 8px;
     padding-right: 8px; /* stronger gutter near scrollbar */
-    border-top: 1px solid rgba(0, 0, 0, 0.06);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-top: 1px solid var(--border-soft);
+    border-bottom: 1px solid var(--border-soft);
     /* subtle inset shadows to signal overflow */
     box-shadow:
         inset 0 8px 8px -8px rgba(0, 0, 0, 0.08),
@@ -364,7 +505,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 1;
-    background: #fff; /* match app-container white */
+    background: var(--surface); /* match app-container white */
     padding: 10px 0;
     font-weight: 700;
 }
@@ -447,14 +588,15 @@ body {
     padding: 0 6px;
 }
 
+/* Plain colored answer outcomes (no chips) */
 .answer-ok {
-    color: #199a50;
+    color: var(--ok);
 }
 .answer-bad {
-    color: #c23b3b;
+    color: var(--bad);
 }
 .answer-none {
-    color: #8a8f98;
+    color: var(--none);
 }
 
 /* footer actions pinned at the bottom */
@@ -468,14 +610,6 @@ body {
 }
 
 /* buttons */
-.btn-primary {
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid #d0d5dd;
-    background-color: navy;
-    color: white;
-    cursor: pointer;
-}
 .back-home {
     align-self: center;
 }
@@ -487,6 +621,7 @@ body {
         flex-direction: column;
         align-items: stretch;
         gap: 6px;
+        padding: 6px 0;
     }
     .play-page .page-title {
         text-align: left;
@@ -506,6 +641,10 @@ body {
         grid-template-columns: 1fr;
         grid-auto-rows: auto; /* natural height when single column */
         gap: var(--gap-form-button);
+    }
+    .answer-label {
+        min-height: 56px; /* slightly tighter on mobile */
+        padding: 12px 14px;
     }
 
     .results-header {

@@ -16,7 +16,7 @@ export default function App() {
                 <div className="app-container">
                     <AppHeader />
 
-                    <main className="qz-main">
+                    <main>
                         <Routes>
                             <Route path="/" element={<Home />} />
                             <Route
