@@ -14,8 +14,6 @@ Fast-paced trivia at your fingertips.
 | :------------------------------------------: |
 |        _Image 3 — The results page._         |
 
-> Note: This is not the final version of the UI.
-
 ## 📚 Overview
 
 **QuizBlitz** is a lightweight trivia app built with **React.js**.
@@ -79,22 +77,20 @@ The project is deployed to a Vercel website [(Click here)](https://quizblitz-taw
 
 ## 📋 Project Status
 
-- ✅ **Initial Cleanup:** Removed default React boilerplate (logos, tests, `reportWebVitals.js`, etc.)
-- ✅ **Branding & Header:** Logo + wordmark
 - ✅ **Completed features:**
     - Core quiz flow (fetch questions, show choices, submit answers)
     - Timer (drift-free) and scoring logic
     - Post-quiz summary (final score, correct answers)
-- ✅ **UI improvement:**
-    - Improved layout and using logo/branding mark
+- ✅ **UI improvement:** Polished to give a more professional look
 - ⚙️ **Work in Progress:**
-    - UI improvement: polish the look (and use icons ?)
-    - Maintenance: major refactoring (component extraction, CSS modules, etc.)
+    - Maintenance:
+        - major refactoring (component extraction, CSS modules, etc.)
+        - add small tests
+    - Dark mode
 
 ### 🧭 Next Steps
 
 - Firebase leaderboard integration
-- Dark mode
 - Persistent player alias + theme toggle
 - Responsive design: Mobile-friendly
 - Accessibility (keyboard navigation, focus states, ARIA labels)
