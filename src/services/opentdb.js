@@ -44,7 +44,8 @@ export async function fetchOpenTdbRaw({
 
     const qs = new URLSearchParams();
     qs.set('amount', String(amount));
-    qs.set('type', 'multiple'); // keep it to multiple choice for now
+    // qs.set('type', 'multiple');     // we want all kind all questions: true/false and/or multiple choices
+
     if (category) qs.set('category', String(category));
     if (difficulty) qs.set('difficulty', String(difficulty));
 
@@ -84,7 +85,7 @@ export async function fetchCategories({
         // ignore cache errors
     }
 
-    // 2) Not fresh/missing → respect cooldown and fetch
+    // 2) Not fresh/missing -> respect cooldown and fetch
     await ensureCooldown(5000);
 
     const res = await fetch(BASE_CATEGORIES, { signal, cache: 'no-store' });
