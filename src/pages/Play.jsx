@@ -91,13 +91,14 @@ export default function Play() {
                     ? json.results
                     : [];
 
-                // zero questions
+                // zero questions (e.g., bad params or API returned none)
                 if (!results.length) {
-                    setStatus('ready');
+                    setStatus('ready'); // we're "done" but have nothing to show
                     setIsPlaying(false);
                     return;
                 }
 
+                // build answers with stable ids, then shuffle for display
                 const processed = results.map((q, qIdx) => {
                     const questionText = decodeHtml(q.question);
                     const correctLabel = decodeHtml(q.correct_answer);
@@ -127,9 +128,12 @@ export default function Play() {
                     };
                 });
                 setItems(processed);
+
+                // init selection slots
                 setSelectedId(
                     Array.from({ length: processed.length }, () => null)
                 );
+
                 setStatus('ready');
             })
             .catch(err => {
@@ -180,16 +184,17 @@ export default function Play() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [current, finished, items.length, selectedId]);
 
+    // When a question times out: score if selected,
     const autoAdvanceOnTimeout = () => {
         if (finished || !items.length) return;
 
         const chosenId = selectedId[current];
         const correctId = items[current]?.correctId;
 
-        let nextScore = score;
+        let nextScore = score; // capture the value we'll persist
         if (chosenId && chosenId === correctId) {
             nextScore = score + 1;
-            setScore(s => s + 1);
+            setScore(s => s + 1); // updating UI
         }
 
         const isLast = current === items.length - 1;
@@ -228,12 +233,13 @@ export default function Play() {
             <section className="play-page">
                 <p className="error-text">Error: {error}</p>
                 <div className="back-link">
-                    <Link to="/">Home</Link>
+                    <Link to="/">Back to settings</Link>
                 </div>
             </section>
         );
     }
 
+    // ready but no questions -> show "Go back Home" link
     if (status === 'ready' && items.length === 0 && !finished) {
         return (
             <section className="play-page">
@@ -243,12 +249,13 @@ export default function Play() {
                     category).
                 </p>
                 <div className="back-link">
-                    <Link to="/">Home</Link>
+                    <Link to="/">Back to settings</Link>
                 </div>
             </section>
         );
     }
 
+    // Main quiz view
     return (
         <section className="play-page">
             <div className="play-header">
@@ -314,6 +321,7 @@ export default function Play() {
                     </fieldset>
                 </div>
             ) : (
+                // This branch is highly unlikely, but kept as a fallback
                 <p className="muted">Sorry, no questions to display.</p>
             )}
         </section>
